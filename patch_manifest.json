@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "服务器补丁",
+    "Version": "patch-z",
+    "Size": "自动检测",
+    "State": "待校验",
+    "StateColor": "#7FDBFF",
+    "FileName": "patch-z.MPQ",
+    "Required": false
+  }
+]

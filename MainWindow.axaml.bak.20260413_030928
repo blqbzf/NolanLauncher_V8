@@ -1,0 +1,1314 @@
+<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="NolanWoWLauncher.MainWindow"
+    Title="诺兰时光 WOW 3.3.5A"
+    Width="1448"
+    Height="1086"
+    MinWidth="1180"
+    MinHeight="780"
+    Background="#04070D"
+    FontFamily="Microsoft YaHei UI, Microsoft YaHei, PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, sans-serif"
+    WindowStartupLocation="CenterScreen"
+    ExtendClientAreaToDecorationsHint="True"
+    ExtendClientAreaChromeHints="NoChrome"
+    SystemDecorations="None">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="GoldBorder" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#6B4113"/>
+            <GradientStop Offset="0.20" Color="#A96C20"/>
+            <GradientStop Offset="0.52" Color="#F0C875"/>
+            <GradientStop Offset="0.80" Color="#9A631B"/>
+            <GradientStop Offset="1" Color="#59350F"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PanelBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#D10A1118"/>
+            <GradientStop Offset="0.55" Color="#C8070C12"/>
+            <GradientStop Offset="1" Color="#BD05080D"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PanelBrushSoft" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#B20A121A"/>
+            <GradientStop Offset="1" Color="#A0060A10"/>
+        </LinearGradientBrush>
+
+        <SolidColorBrush x:Key="TextMainBrush" Color="#E8DDC8"/>
+        <SolidColorBrush x:Key="TextSubBrush" Color="#B8A47F"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#7E7262"/>
+        <SolidColorBrush x:Key="GoldBrush" Color="#D7A64E"/>
+        <SolidColorBrush x:Key="BrightGoldBrush" Color="#F1C86A"/>
+        <SolidColorBrush x:Key="GreenBrush" Color="#4BE36E"/>
+        <SolidColorBrush x:Key="BlueBrush" Color="#6ED8FF"/>
+        <SolidColorBrush x:Key="RedBrush" Color="#FF5C5C"/>
+
+        <SolidColorBrush x:Key="GlowOuterBrush" Color="#36F0C96A"/>
+        <SolidColorBrush x:Key="GlowBorderBrush" Color="#D8A84A"/>
+        <SolidColorBrush x:Key="GlowInnerBorderBrush" Color="#6A4519"/>
+
+        <LinearGradientBrush x:Key="WoodFillDark" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#1A2430"/>
+            <GradientStop Offset="0.55" Color="#10171F"/>
+            <GradientStop Offset="1" Color="#0A1016"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="WoodFillLight" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#7C4E1C"/>
+            <GradientStop Offset="0.18" Color="#A96D27"/>
+            <GradientStop Offset="0.52" Color="#8A5A20"/>
+            <GradientStop Offset="0.82" Color="#684116"/>
+            <GradientStop Offset="1" Color="#2B1A0C"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="WoodTopLight" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#66FFF0B8"/>
+            <GradientStop Offset="1" Color="#00FFF0B8"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="WoodBottomWarm" StartPoint="0,1" EndPoint="0,0">
+            <GradientStop Offset="0" Color="#55FFD07A"/>
+            <GradientStop Offset="1" Color="#00FFD07A"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Border.launcherPanel">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBorder}"/>
+            <Setter Property="BorderThickness" Value="1.1"/>
+        </Style>
+
+        <Style Selector="Border.launcherPanelSoft">
+            <Setter Property="CornerRadius" Value="9"/>
+            <Setter Property="Background" Value="{StaticResource PanelBrushSoft}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="TextBlock.sectionTitle">
+            <Setter Property="Foreground" Value="#F1C86A"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#D0090E14"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMainBrush}"/>
+            <Setter Property="BorderBrush" Value="#705630"/>
+            <Setter Property="BorderThickness" Value="1.1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Opacity" Value="0.01"/>
+        </Style>
+
+        <Style Selector="Button.windowBtn">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="#E0C27D"/>
+            <Setter Property="BorderBrush" Value="#8A6729"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0" Color="#172231"/>
+                    <GradientStop Offset="1" Color="#0A1118"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.windowBtn:pointerover">
+            <Setter Property="Foreground" Value="#FFF0C9"/>
+            <Setter Property="BorderBrush" Value="#D2A955"/>
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0" Color="#243446"/>
+                    <GradientStop Offset="1" Color="#0F1720"/>
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="ProgressBar">
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Background" Value="#AA121821"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GoldBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ClipToBounds="True">
+        <!-- 仅保留一个全局背景 -->
+        <Image x:Name="BackgroundImage"
+               Stretch="UniformToFill"
+               RenderTransformOrigin="0.5,0.5"
+               IsHitTestVisible="False">
+            <Image.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+                    <TranslateTransform X="-8" Y="-2"/>
+                </TransformGroup>
+            </Image.RenderTransform>
+        </Image>
+
+        <Border Background="#36030A10" IsHitTestVisible="False"/>
+
+        <Viewbox Stretch="Uniform"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center">
+
+            <Canvas Width="1400" Height="1000" ClipToBounds="True">
+                <Border Width="1400" Height="1000" Background="#0C030A11" IsHitTestVisible="False"/>
+
+                <!-- 左上 Logo -->
+                <Grid Canvas.Left="18" Canvas.Top="12" Width="470" Height="185">
+                    <Image x:Name="LogoImage"
+                           
+                           Width="430"
+                           Height="129"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Top"/>
+
+                    <TextBlock Text="WOW 3.3.5A"
+                               Margin="30,118,0,0"
+                               FontSize="30"
+                               FontWeight="Bold"
+                               Foreground="#F2B84C"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"/>
+
+                    <Grid Margin="26,150,0,0"
+                          Width="430"
+                          Height="28"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          ColumnDefinitions="*,Auto,*">
+
+                        <Grid Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Border Height="2"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0.00" Color="#0000FF99"/>
+                                        <GradientStop Offset="0.55" Color="#55A7FF7A"/>
+                                        <GradientStop Offset="1.00" Color="#FF89E66A"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                            <Ellipse Width="8"
+                                     Height="8"
+                                     Fill="#79D96A"
+                                     Stroke="#B9F2A7"
+                                     StrokeThickness="1"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="重温经典 · 荣耀归来"
+                                   Margin="0"
+                                   FontSize="21"
+                                   FontWeight="SemiBold"
+                                   Foreground="#F3E7CB"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+
+                        <Grid Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
+                            <Border Height="2"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Offset="0.00" Color="#FF89E66A"/>
+                                        <GradientStop Offset="0.45" Color="#55A7FF7A"/>
+                                        <GradientStop Offset="1.00" Color="#0000FF99"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                            <Ellipse Width="8"
+                                     Height="8"
+                                     Fill="#79D96A"
+                                     Stroke="#B9F2A7"
+                                     StrokeThickness="1"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Center"/>
+                        </Grid>
+                </Grid>
+                </Grid>
+
+                <!-- 右上在线状态 -->
+                <Border Canvas.Left="1098" Canvas.Top="94"
+                        Width="258" Height="118"
+                        Classes="launcherPanelSoft"
+                        Padding="18,15">
+                    <StackPanel>
+                        <TextBlock x:Name="OnlineStatusText"
+                                   Text="● 服务器在线"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource GreenBrush}"/>
+                        <Grid Margin="0,14,0,0" ColumnDefinitions="*,Auto">
+                            <TextBlock x:Name="OnlineCountText"
+                                       Text="245 人在线"
+                                       FontSize="17"
+                                       Foreground="{StaticResource TextMainBrush}"/>
+                            <TextBlock x:Name="PingText"
+                                       Grid.Column="1"
+                                       Text="45ms"
+                                       FontSize="17"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource GreenBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 窗口按钮 -->
+                <Button x:Name="MinimizeButton"
+                        Classes="windowBtn"
+                        Canvas.Left="1270" Canvas.Top="16"
+                        Content="—"/>
+                <Button Canvas.Left="1314" Canvas.Top="16"
+                        Classes="windowBtn"
+                        Content="⚙"
+                        IsEnabled="False"/>
+                <Button x:Name="ExitLauncherButton"
+                        Classes="windowBtn"
+                        Canvas.Left="1358" Canvas.Top="16"
+                        Content="×"/>
+
+                <!-- 客户端管理 -->
+                <Border Canvas.Left="22" Canvas.Top="240"
+                        Width="368" Height="334"
+                        Classes="launcherPanel"
+                        Padding="18">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                        <StackPanel>
+                            <TextBlock Classes="sectionTitle" Text="客户端管理"/>
+                            <Border Height="1" Margin="0,12,0,16" Background="#35F4C86A"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1">
+                            <TextBlock Text="客户端路径"
+                                       FontSize="15"
+                                       Foreground="#B8A47F"
+                                       Margin="0,0,0,8"/>
+                            <Grid ColumnDefinitions="*,70">
+                                <TextBox x:Name="ClientPathBox"
+                                         Height="38"
+                                         Watermark="请选择客户端目录"/>
+
+                                <Grid Grid.Column="1" Margin="10,0,0,0" Height="38">
+                                    <Border CornerRadius="9"
+                                            BorderBrush="#D8A84A"
+                                            BorderThickness="1.2"
+                                            Background="#30F0C86A"
+                                            Padding="2"
+                                            BoxShadow="0 0 10 0 #55E7BE64, 0 0 18 0 #22E7BE64">
+                                        <Border CornerRadius="8"
+                                                BorderBrush="#FFD98B"
+                                                BorderThickness="1.2"
+                                                Padding="1">
+                                            <Border CornerRadius="7"
+                                                    BorderBrush="#6A4519"
+                                                    BorderThickness="1">
+                                                <Grid>
+                                                    <Border CornerRadius="6"
+                                                            Background="{StaticResource WoodFillDark}"/>
+                                                    <Border CornerRadius="6"
+                                                            Height="14"
+                                                            VerticalAlignment="Top"
+                                                            Background="{StaticResource WoodTopLight}"
+                                                            Opacity="0.24"/>
+                                                    <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="浏览"
+                                                               Foreground="#EED9A8"
+                                                               FontSize="16"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                    <Button x:Name="BrowseClientButton"/>
+                                                </Grid>
+                                            </Border>
+                                        </Border>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </StackPanel>
+
+                        <Grid Grid.Row="2"
+                              Margin="0,18,0,0"
+                              ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock x:Name="ClientIntegrityDot"
+                                       Text="●"
+                                       FontSize="16"
+                                       Foreground="{StaticResource GreenBrush}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ClientIntegrityText"
+                                       Grid.Column="1"
+                                       Margin="8,0,0,0"
+                                       Text="客户端完整"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource GreenBrush}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CacheSizeText"
+                                       Grid.Column="2"
+                                       Text="缓存：512.3 MB"
+                                       FontSize="16"
+                                       Foreground="#E8DDC8"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="3"
+                              Margin="0,20,0,0"
+                              ColumnDefinitions="*,*">
+                            <Grid Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="修复 Realmlist"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="FixRealmlistButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Column="1" Margin="12,0,0,0" Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="清理缓存"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="ClearCacheButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <Grid Grid.Row="4" Margin="0,14,0,0" Height="48">
+                            <Border CornerRadius="10"
+                                    BorderBrush="#D8A84A"
+                                    BorderThickness="1.2"
+                                    Background="#30F0C86A"
+                                    Padding="2"
+                                    BoxShadow="0 0 10 0 #55E7BE64, 0 0 18 0 #22E7BE64">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#FFD98B"
+                                        BorderThickness="1.2"
+                                        Padding="1">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#7A4B16"
+                                            BorderThickness="1">
+                                        <Grid>
+                                            <Border CornerRadius="7"
+                                                    Background="{StaticResource WoodFillLight}"/>
+                                            <Border CornerRadius="7"
+                                                    Height="16"
+                                                    VerticalAlignment="Top"
+                                                    Background="{StaticResource WoodTopLight}"
+                                                    Opacity="0.24"/>
+                                            <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="修复客户端"
+                                                       Foreground="#F1DEB0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button x:Name="RepairClientFullButton"/>
+                                        </Grid>
+                                    </Border>
+                                </Border>
+                            </Border>
+                        </Grid>
+
+                        <Grid Grid.Row="5"/>
+                    </Grid>
+                </Border>
+
+                <!-- 快速操作 -->
+                <Border Canvas.Left="22" Canvas.Top="586"
+                        Width="368" Height="360"
+                        Classes="launcherPanel"
+                        Padding="18">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                        <StackPanel>
+                            <TextBlock Classes="sectionTitle" Text="快速操作"/>
+                            <Border Height="1" Margin="0,12,0,16" Background="#35F4C86A"/>
+                        </StackPanel>
+
+                        <!-- 主按钮 -->
+                        <Grid Grid.Row="1" Height="108">
+                            <Border CornerRadius="16"
+                                    Background="#46F5D26E"
+                                    BorderBrush="#F2C96D"
+                                    BorderThickness="1.6"
+                                    Padding="3"
+                                    BoxShadow="0 0 18 0 #AAF7D97F, 0 0 38 0 #4CF3C85F, 0 0 58 0 #1EF3C85F">
+
+                                <Border CornerRadius="14"
+                                        BorderBrush="#FFE3A6"
+                                        BorderThickness="2"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #77FFE0A0, 0 0 18 0 #33FFD98B">
+
+                                    <Border CornerRadius="12"
+                                            BorderBrush="#7A4B16"
+                                            BorderThickness="1.1"
+                                            Padding="1">
+
+                                        <Grid>
+                                            <Border CornerRadius="11">
+                                                <Border.Background>
+                                                    <ImageBrush Source="avares://NolanWoWLauncher/Assets/buttons/main_button_texture.png"
+                                                                Stretch="Fill"
+                                                                Opacity="0.82"/>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border CornerRadius="11"
+                                                    Opacity="0.42">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Offset="0" Color="#8A5A20"/>
+                                                        <GradientStop Offset="0.18" Color="#A96D27"/>
+                                                        <GradientStop Offset="0.52" Color="#8A5A20"/>
+                                                        <GradientStop Offset="0.82" Color="#684116"/>
+                                                        <GradientStop Offset="1" Color="#36200C"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border CornerRadius="11"
+                                                    Height="30"
+                                                    VerticalAlignment="Top"
+                                                    Opacity="0.24">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Offset="0" Color="#FFFFF1C8"/>
+                                                        <GradientStop Offset="1" Color="#00FFF1C8"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border CornerRadius="11"
+                                                    Height="34"
+                                                    VerticalAlignment="Bottom"
+                                                    Opacity="0.22">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                        <GradientStop Offset="0" Color="#FFD07A"/>
+                                                        <GradientStop Offset="1" Color="#00FFD07A"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <!-- 内部灯箱：四周向内发散，不向外扩 -->
+                                            <Border CornerRadius="11"
+                                                    Margin="6"
+                                                    BorderBrush="#55FFE7B0"
+                                                    BorderThickness="1"
+                                                    Opacity="0.95"/>
+
+                                            <Border CornerRadius="10"
+                                                    Margin="7"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0.55">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Offset="0.00" Color="#66FFF0C0"/>
+                                                        <GradientStop Offset="0.22" Color="#18FFF0C0"/>
+                                                        <GradientStop Offset="0.78" Color="#18FFD47A"/>
+                                                        <GradientStop Offset="1.00" Color="#66FFD47A"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border CornerRadius="10"
+                                                    Margin="7"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0.45">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Offset="0.00" Color="#5CFFE9B8"/>
+                                                        <GradientStop Offset="0.16" Color="#14FFE9B8"/>
+                                                        <GradientStop Offset="0.84" Color="#14FFE9B8"/>
+                                                        <GradientStop Offset="1.00" Color="#5CFFE9B8"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border CornerRadius="9"
+                                                    Margin="14,10,14,10"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0.14">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Offset="0.00" Color="#66FFE1A0"/>
+                                                        <GradientStop Offset="0.50" Color="#18FFE1A0"/>
+                                                        <GradientStop Offset="1.00" Color="#00FFE1A0"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Canvas x:Name="EnterGameParticlesCanvas"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0.75"/>
+                                            <Grid ColumnDefinitions="60,*"
+                                                  Margin="16,0,16,0">
+                                                <TextBlock Text="▶"
+                                                           FontSize="36"
+                                                           FontWeight="Bold"
+                                                           Foreground="#FFF2C8"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"/>
+
+                                                <StackPanel Grid.Column="1"
+                                                            VerticalAlignment="Center"
+                                                           >
+                                                    <TextBlock Text="进入游戏"
+                                                               FontSize="31"
+                                                               FontWeight="Bold"
+                                                               Foreground="#FFF7DD"
+                                                               HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="ENTER WORLD"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#F0CC76"
+                                                               HorizontalAlignment="Center"
+                                                              />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Button x:Name="EnterGameButton"
+                                                    Classes="enterGame"/>
+                                        </Grid>
+                                    </Border>
+                                </Border>
+                            </Border>
+                        </Grid>
+
+                        <!-- 第一排 -->
+                        <Grid Grid.Row="2"
+                              Margin="0,14,0,0"
+                              ColumnDefinitions="*,*">
+                            <Grid Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="注册账号"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="RegisterButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Column="1" Margin="12,0,0,0" Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="检查更新"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="CheckUpdateButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- 第二排 -->
+                        <Grid Grid.Row="3"
+                              Margin="0,10,0,0"
+                              ColumnDefinitions="*,*">
+                            <Grid Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="下载客户端"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="DownloadClientButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Column="1" Margin="12,0,0,0" Height="44">
+                                <Border CornerRadius="9"
+                                        BorderBrush="#E0B255"
+                                        BorderThickness="1.3"
+                                        Background="#34F0CF74"
+                                        Padding="2"
+                                        BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                    <Border CornerRadius="8"
+                                            BorderBrush="#FFE2A3"
+                                            BorderThickness="1.4"
+                                            Padding="1">
+                                        <Border CornerRadius="7"
+                                                BorderBrush="#6A4519"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Border CornerRadius="6"
+                                                        Background="{StaticResource WoodFillDark}"/>
+                                                <Border CornerRadius="6"
+                                                        Height="16"
+                                                        VerticalAlignment="Top"
+                                                        Background="{StaticResource WoodTopLight}"
+                                                        Opacity="0.34"/>
+                                                <Border CornerRadius="6"
+                                                        Height="12"
+                                                        VerticalAlignment="Bottom"
+                                                        Background="#2A000000"/>
+                                                <TextBlock Text="退出游戏"
+                                                           Foreground="#EED9A8"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                <Button x:Name="ExitGameButton"/>
+                                            </Grid>
+                                        </Border>
+                                    </Border>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- 第三排 -->
+                        <Grid Grid.Row="4"
+                              Margin="0,10,0,0"
+                              Height="44">
+                            <Border CornerRadius="9"
+                                    BorderBrush="#E0B255"
+                                    BorderThickness="1.3"
+                                    Background="#34F0CF74"
+                                    Padding="2"
+                                    BoxShadow="0 0 10 0 #66F2D27D, 0 0 20 0 #28F0C86A">
+                                <Border CornerRadius="8"
+                                        BorderBrush="#FFE2A3"
+                                        BorderThickness="1.4"
+                                        Padding="1">
+                                    <Border CornerRadius="7"
+                                            BorderBrush="#7A4B16"
+                                            BorderThickness="1">
+                                        <Grid>
+                                            <Border CornerRadius="6"
+                                                    Background="{StaticResource WoodFillLight}"/>
+                                            <Border CornerRadius="6"
+                                                    Height="16"
+                                                    VerticalAlignment="Top"
+                                                    Background="{StaticResource WoodTopLight}"
+                                                    Opacity="0.24"/>
+                                            <Border CornerRadius="6"
+                                                    Height="12"
+                                                    VerticalAlignment="Bottom"
+                                                    Background="#2A000000"/>
+                                            <TextBlock Text="魔兽世界数据库"
+                                                       Foreground="#F1DEB0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button x:Name="WoWDatabaseButton"/>
+                                        </Grid>
+                                    </Border>
+                                </Border>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- 公告主面板 -->
+                <Border Canvas.Left="398" Canvas.Top="240"
+                        Width="636" Height="334"
+                        Classes="launcherPanel"
+                        Padding="0">
+                    <Grid ColumnDefinitions="1.08*,0.92*">
+                        <Border IsHitTestVisible="False">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Offset="0.00" Color="#30050A10"/>
+                                    <GradientStop Offset="0.30" Color="#18050A10"/>
+                                    <GradientStop Offset="0.70" Color="#08050A10"/>
+                                    <GradientStop Offset="1.00" Color="#00050A10"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+
+                        <!-- 公告左侧 -->
+                        <Grid Margin="18,14,12,12"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                            <Grid>
+                                <TextBlock Classes="sectionTitle"
+                                           Text="服务器公告"/>
+                            </Grid>
+
+                            <TextBlock x:Name="AnnouncementUpdatedText"
+                                       Grid.Row="1"
+                                       Margin="0,12,0,0"
+                                       Text="最近更新：2026-04-12 18:22:14"
+                                       FontSize="16"
+                                       Foreground="#B8A47F"/>
+
+                            <TextBlock x:Name="AnnouncementTitleText"
+                                       Grid.Row="2"
+                                       Margin="0,12,0,0"
+                                       Text="欢迎来到诺兰时光"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#F3C96A"
+                                       TextWrapping="Wrap"/>
+
+                            <TextBlock x:Name="AnnouncementBodyText"
+                                       Grid.Row="3"
+                                       Margin="0,10,0,0"
+                                       Text="启动器已完成基础功能接入，可进行下载、修复、检测与启动。"
+                                       FontSize="17"
+                                       Foreground="#E6D9C2"
+                                       TextWrapping="Wrap"/>
+
+                            <StackPanel Grid.Row="4" Margin="0,8,0,0">
+                                <TextBlock x:Name="AnnouncementLine1"
+                                           Text="◆ 冰冠堡垒开放，副本内容持续更新"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4BE36E"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="AnnouncementLine2"
+                                           Margin="0,8,0,0"
+                                           Text="◆ 冬幕节活动进行中，登录即可参与"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4BE36E"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="AnnouncementLine3"
+                                           Margin="0,8,0,0"
+                                           Text="◆ 支持一键修复 Realmlist 与客户端清理"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4BE36E"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="AnnouncementLine4"
+                                           Margin="0,8,0,0"
+                                           Text="◆ 建议首次进入前先进行补丁检查"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4BE36E"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Hero 右区 -->
+                        <Border Grid.Column="1"
+                                Margin="0,0,0,0"
+                                CornerRadius="10"
+                                ClipToBounds="True">
+                            <Grid>
+                                <Image Source="avares://NolanWoWLauncher/Assets/bg/main_bg.jpg"
+                                       Stretch="UniformToFill"
+                                       Opacity="0.46"
+                                       RenderTransformOrigin="0.5,0.5">
+                                    <Image.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform ScaleX="1.18" ScaleY="1.18"/>
+                                            <TranslateTransform X="-10" Y="0"/>
+                                        </TransformGroup>
+                                    </Image.RenderTransform>
+                                </Image>
+
+                                <Border Background="#42071019"/>
+
+                                <Border>
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Offset="0.00" Color="#D0080E14"/>
+                                            <GradientStop Offset="0.18" Color="#B0080E14"/>
+                                            <GradientStop Offset="0.38" Color="#72081014"/>
+                                            <GradientStop Offset="0.62" Color="#34081014"/>
+                                            <GradientStop Offset="1.00" Color="#10081014"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+
+                                <Image x:Name="HeroImage"
+                                       Stretch="Uniform"
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Stretch"
+                                       Margin="0"/>
+
+                                <Border VerticalAlignment="Bottom"
+                                        Height="46"
+                                        Background="#22040A10"/>
+
+                                <Grid HorizontalAlignment="Right"
+                                      VerticalAlignment="Top"
+                                      Margin="0,10,10,0"
+                                      Width="82"
+                                      Height="32">
+                                    <Border CornerRadius="9"
+                                            BorderBrush="#D8A84A"
+                                            BorderThickness="1.2"
+                                            Background="#30F0C86A"
+                                            Padding="2"
+                                            BoxShadow="0 0 10 0 #55E7BE64, 0 0 18 0 #22E7BE64">
+                                        <Border CornerRadius="8"
+                                                BorderBrush="#FFD98B"
+                                                BorderThickness="1.2"
+                                                Padding="1">
+                                            <Border CornerRadius="7"
+                                                    BorderBrush="#6A4519"
+                                                    BorderThickness="1">
+                                                <Grid>
+                                                    <Border CornerRadius="6"
+                                                            Background="{StaticResource WoodFillDark}"/>
+                                                    <Border CornerRadius="6"
+                                                            Height="12"
+                                                            VerticalAlignment="Top"
+                                                            Background="{StaticResource WoodTopLight}"
+                                                            Opacity="0.16"/>
+                                                    <TextBlock Text="刷新"
+                                                               Foreground="#EAD7A5"
+                                                               FontSize="12"
+                                                               FontWeight="Bold"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                    <Button x:Name="RefreshAnnouncementButton"/>
+                                                </Grid>
+                                            </Border>
+                                        </Border>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Banner -->
+                <Grid Canvas.Left="398" Canvas.Top="586"
+                      Width="636" Height="98"
+                      ColumnDefinitions="*,*,*">
+
+                    <Border Classes="launcherPanelSoft" Padding="0" ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="BannerRaidImage"
+                                   Stretch="UniformToFill"/>
+                            <Border Background="#4A000000"/>
+                            <Border VerticalAlignment="Bottom" Height="34" Background="#88000000"/>
+                            <StackPanel VerticalAlignment="Bottom" Margin="12,0,12,8">
+                                <TextBlock Text="全新副本" FontSize="11" Foreground="#E8DDC8"/>
+                                <TextBlock Text="冰冠堡垒" FontSize="17" FontWeight="Bold" Foreground="#F5D88D"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Classes="launcherPanelSoft"
+                            Padding="0"
+                            Margin="8,0,0,0"
+                            ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="BannerEventImage"
+                                   Stretch="UniformToFill"/>
+                            <Border Background="#4A000000"/>
+                            <Border VerticalAlignment="Bottom" Height="34" Background="#88000000"/>
+                            <StackPanel VerticalAlignment="Bottom" Margin="12,0,12,8">
+                                <TextBlock Text="限时活动" FontSize="11" Foreground="#E8DDC8"/>
+                                <TextBlock Text="冬幕节" FontSize="17" FontWeight="Bold" Foreground="#F5D88D"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            Classes="launcherPanelSoft"
+                            Padding="0"
+                            Margin="8,0,0,0"
+                            ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="BannerFeatureImage"
+                                   Stretch="UniformToFill"/>
+                            <Border Background="#4A000000"/>
+                            <Border VerticalAlignment="Bottom" Height="34" Background="#88000000"/>
+                            <StackPanel VerticalAlignment="Bottom" Margin="12,0,12,8">
+                                <TextBlock Text="幻化系统" FontSize="11" Foreground="#E8DDC8"/>
+                                <TextBlock Text="已开启" FontSize="17" FontWeight="Bold" Foreground="#F5D88D"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- 补丁列表 -->
+                <Border Canvas.Left="398" Canvas.Top="692"
+                        Width="636" Height="264"
+                        Classes="launcherPanel"
+                        Padding="14">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock x:Name="PatchCountText"
+                                       Classes="sectionTitle"
+                                       Text="补丁列表（4）"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="检查更新后自动刷新"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Border Grid.Row="1"
+                                Margin="0,10,0,0"
+                                Background="#A90B1119"
+                                BorderBrush="{StaticResource GoldBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10,7">
+                            <Grid ColumnDefinitions="3*,1.2*,1.2*,1.2*,1*">
+                                <TextBlock Text="文件名" Foreground="{StaticResource TextSubBrush}" FontSize="12"/>
+                                <TextBlock Grid.Column="1" Text="版本" Foreground="{StaticResource TextSubBrush}" FontSize="12"/>
+                                <TextBlock Grid.Column="2" Text="大小" Foreground="{StaticResource TextSubBrush}" FontSize="12"/>
+                                <TextBlock Grid.Column="3" Text="状态" Foreground="{StaticResource TextSubBrush}" FontSize="12"/>
+                                <TextBlock Grid.Column="4" Text="操作" Foreground="{StaticResource TextSubBrush}" FontSize="12"/>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="2"
+                                      Margin="0,8,0,0"
+                                      VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="PatchListPanel"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- 服务器信息 -->
+                <Border Canvas.Left="1046" Canvas.Top="240"
+                        Width="322" Height="246"
+                        Classes="launcherPanel"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Classes="sectionTitle" Text="服务器信息"/>
+                        <Border Height="1" Margin="0,12,0,14" Background="#35F4C86A"/>
+
+                        <Grid ColumnDefinitions="98,*" Margin="0,0,0,10">
+                            <TextBlock Text="连接地址：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="ServerAddressText"
+                                       Grid.Column="1"
+                                       Text="43.248.129.172"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F1C86A"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="98,*" Margin="0,0,0,10">
+                            <TextBlock Text="Realmlist：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="RealmlistText"
+                                       Grid.Column="1"
+                                       Text="set realmlist 43.248.129.172"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F1C86A"
+                                       TextWrapping="Wrap"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="98,*" Margin="0,0,0,10">
+                            <TextBlock Text="补丁渠道：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="PatchChannelText"
+                                       Grid.Column="1"
+                                       Text="combined-test"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F1C86A"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="98,*">
+                            <TextBlock Text="服务器：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="CurrentServerText"
+                                       Grid.Column="1"
+                                       Text="正式服 / 巫妖王之怒 / 3.3.5a"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource GreenBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 更新进度 -->
+                <Border Canvas.Left="1046" Canvas.Top="498"
+                        Width="322" Height="206"
+                        Classes="launcherPanel"
+                        Padding="16">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                        <TextBlock Classes="sectionTitle" Text="更新进度"/>
+                        <Border Grid.Row="1" Height="1" Margin="0,12,0,16" Background="#35F4C86A"/>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="基础文件更新"
+                                       FontSize="16"
+                                       Foreground="{StaticResource TextMainBrush}"/>
+                            <TextBlock x:Name="ServerStatusText"
+                                       Grid.Column="1"
+                                       Text="60%"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource GoldBrush}"/>
+                        </Grid>
+
+                        <ProgressBar x:Name="RightProgressBar"
+                                     Grid.Row="3"
+                                     Margin="0,12,0,10"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="60"/>
+
+                        <TextBlock x:Name="DownloadProgressText"
+                                   Grid.Row="4"
+                                   Text="正在下载：patch-3.MPQ"
+                                   FontSize="16"
+                                   Foreground="{StaticResource TextMainBrush}"/>
+
+                        <Grid Grid.Row="5" Margin="0,12,0,0" RowDefinitions="Auto,Auto">
+                            <TextBlock x:Name="DownloadSpeedText"
+                                       Text="12.45 MB / 20.65 MB（2.3 MB/s）"
+                                       FontSize="15"
+                                       Foreground="{StaticResource BlueBrush}"/>
+                            <TextBlock Grid.Row="1"
+                                       Margin="0,8,0,0"
+                                       Text="剩余时间：00:00:08"
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSubBrush}"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- 状态信息 -->
+                <Border Canvas.Left="1046" Canvas.Top="716"
+                        Width="322" Height="170"
+                        Classes="launcherPanel"
+                        Padding="16">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Classes="sectionTitle" Text="状态信息"/>
+                        <Border Grid.Row="1" Height="1" Margin="0,12,0,14" Background="#35F4C86A"/>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                            <TextBlock Text="客户端状态：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="ClientVersionText"
+                                       Grid.Column="1"
+                                       Text="完整"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource GreenBrush}"/>
+                        </Grid>
+
+                        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                            <TextBlock Text="连接状态：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock x:Name="ServerOnlineText"
+                                       Grid.Column="1"
+                                       Text="就绪"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource GreenBrush}"/>
+                        </Grid>
+
+                        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="服务器状态：" FontSize="16" Foreground="{StaticResource TextSubBrush}"/>
+                            <TextBlock Text="在线"
+                                       Grid.Column="1"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource GreenBrush}"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- 底栏 -->
+                <Border Canvas.Left="14" Canvas.Top="954"
+                        Width="1372" Height="34"
+                        CornerRadius="8"
+                        Background="#B2080D13"
+                        BorderBrush="{StaticResource GoldBorder}"
+                        BorderThickness="1">
+                    <Grid Margin="14,0"
+                          ColumnDefinitions="Auto,*,Auto">
+                        <TextBlock x:Name="BottomVersionText"
+                                   Text="Nolan Launcher  V4"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Foreground="{StaticResource GoldBrush}"/>
+                        <TextBlock x:Name="StatusBarText"
+                                   Grid.Column="1"
+                                   Margin="18,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   Foreground="{StaticResource TextSubBrush}"
+                                   Text="状态：等待选择客户端目录"/>
+                        <TextBlock Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSubBrush}"
+                                   Text="© 2026 诺兰时光 All Rights Reserved"/>
+                    </Grid>
+                </Border>
+
+                <!-- 隐藏日志框 -->
+                <TextBox x:Name="LogBox"
+                         Canvas.Left="-3000"
+                         Canvas.Top="-3000"
+                         Width="10"
+                         Height="10"
+                         IsVisible="False"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"/>
+            </Canvas>
+        </Viewbox>
+    </Grid>
+</Window>

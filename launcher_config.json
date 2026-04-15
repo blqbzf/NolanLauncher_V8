@@ -1,0 +1,10 @@
+{
+  "RealmHost": "43.248.129.172",
+  "RegisterUrl": "http://43.248.129.172:88/",
+  "ServerDisplayName": "正式服 / 巫妖王之怒 / 3.3.5a",
+  "LauncherVersion": "V4",
+  "AnnouncementTitle": "欢迎来到诺兰时光",
+  "AnnouncementBody": "启动器已完成基础功能接入，可进行下载、修复、检测与启动。",
+  "ServerStatusUrl": "http://43.248.129.172:88/api/server-status.json",
+  "AnnouncementUrl": "http://43.248.129.172:88/api/announcement.json"
+}

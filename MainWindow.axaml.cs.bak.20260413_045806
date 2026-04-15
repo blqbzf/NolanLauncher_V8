@@ -1,0 +1,972 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Ellipse = Avalonia.Controls.Shapes.Ellipse;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using NolanWoWLauncher.Models;
+using NolanWoWLauncher.Services;
+
+namespace NolanWoWLauncher;
+
+public partial class MainWindow : Window
+{
+    private static string LogPath => Path.Combine(AppContext.BaseDirectory, "startup.log");
+
+    private readonly DownloadServices _downloadServices = new();
+    private readonly RepairServices _repairServices = new();
+    private readonly ClientInspectService _clientInspectService = new();
+    private readonly PatchService _patchService = new();
+    private readonly LauncherConfigService _launcherConfigService = new();
+    private readonly ServerStatusService _serverStatusService = new();
+    private readonly AnnouncementService _announcementService = new();
+
+    private readonly LauncherConfig _launcherConfig;
+
+    public MainWindow()
+    {
+        _launcherConfig = _launcherConfigService.Load();
+
+        SafeAppendFileLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MainWindow ctor enter{Environment.NewLine}");
+
+        InitializeComponent();
+
+        SafeAppendFileLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] InitializeComponent ok{Environment.NewLine}");
+
+        Opened += OnOpened;
+
+        BindMinimizeButton();
+        BindButtonsSafely();
+    }
+
+    private void BindMinimizeButton()
+    {
+        var minimizeButton = FindCtrl<Button>("MinimizeButton");
+        if (minimizeButton is not null)
+        {
+            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
+        }
+        else
+        {
+            AppendLog("未找到按钮：MinimizeButton");
+        }
+    }
+
+    private void BindButtonsSafely()
+    {
+        BindButton("BrowseClientButton", async () => await BrowseClientFolderAsync());
+        BindButton("FixRealmlistButton", async () => await FixRealmlistAsync());
+        BindButton("ClearCacheButton", async () => await ClearCacheAsync());
+        BindButton("RepairClientFullButton", async () => await DeepCleanClientAsync());
+        BindButton("EnterGameButton", async () => await EnterGameAsync());
+
+        BindButton("RegisterButton", () =>
+        {
+            OpenRegisterUrl();
+            return Task.CompletedTask;
+        });
+
+        BindButton("CheckUpdateButton", async () => await CheckUpdateAsync());
+        BindButton("DownloadClientButton", async () => await DownloadClientAsync());
+        BindButton("WoWDatabaseButton", () =>
+        {
+            OpenExternalUrl("https://80.nfuwow.com/");
+            return Task.CompletedTask;
+        });
+        BindButton("ExitGameButton", () =>
+        {
+            Close();
+            return Task.CompletedTask;
+        });
+
+        var exitButton = FindCtrl<Button>("ExitLauncherButton");
+        if (exitButton is not null)
+        {
+            exitButton.Click += (_, _) => Close();
+        }
+        else
+        {
+            AppendLog("未找到按钮：ExitLauncherButton");
+        }
+
+        BindButton("RefreshAnnouncementButton", async () =>
+        {
+            await RefreshServerStatusAsync();
+            await RefreshAnnouncementAsync();
+        });
+    }
+
+    private void BindButton(string name, Func<Task> action)
+    {
+        var button = FindCtrl<Button>(name);
+        if (button is null)
+        {
+            AppendLog($"未找到按钮：{name}");
+            return;
+        }
+
+        button.Click += async (_, _) =>
+        {
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"按钮事件异常 {name}：{ex.Message}");
+            }
+        };
+    }
+
+    private async void OnOpened(object? sender, EventArgs e)
+    {
+        try
+        {
+            TryLoadBackground();
+            LoadHeroImage();
+            LoadInitialUi();
+            StartEnterGameParticles();
+            AppendLog("启动器界面已加载。");
+
+            await RefreshServerStatusAsync();
+            await RefreshAnnouncementAsync();
+            await CheckUpdateAsync();
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"OnOpened 异常：{ex}");
+        }
+    }
+
+    private DispatcherTimer? _enterGameParticleTimer;
+    private readonly Random _particleRandom = new();
+
+    private void LoadInitialUi()
+    {
+        SetText("BottomVersionText", $"Nolan Launcher   {_launcherConfig.LauncherVersion}");
+        SetText("ServerAddressText", _launcherConfig.RealmHost);
+        SetText("CurrentServerText", _launcherConfig.ServerDisplayName);
+        SetText("ClientVersionText", "等待检测");
+        SetText("ServerStatusText", "加载中...");
+        SetText("ServerOnlineText", "检测中...");
+        SetText("OnlineStatusText", "● 检测中...");
+        SetText("OnlineCountText", "在线人数：--");
+        SetText("PingText", "延迟 -- ms");
+        SetText("StatusBarText", "状态：等待选择客户端目录");
+
+        // kept enabled
+
+        SetText("AnnouncementUpdatedText", "最近更新：--");
+        SetText("AnnouncementTitleText", _launcherConfig.AnnouncementTitle);
+        SetText("AnnouncementBodyText", _launcherConfig.AnnouncementBody);
+        SetText("AnnouncementLine1", "◆ 正在加载公告详情...");
+        SetText("AnnouncementLine2", string.Empty);
+        SetText("AnnouncementLine3", string.Empty);
+        SetText("AnnouncementLine4", string.Empty);
+
+        SetText("RealmlistText", $"set realmlist {_launcherConfig.RealmHost}");
+        SetText("PatchChannelText", "combined-test");
+
+        var clientPath = GetTextBoxText("ClientPathBox");
+        InspectClientPath(clientPath);
+    }
+
+    private async Task RefreshServerStatusAsync()
+    {
+        try
+        {
+            var status = await _serverStatusService.LoadAsync(
+                _launcherConfig.ServerStatusUrl,
+                _launcherConfig.ServerDisplayName);
+
+            SetText("OnlineStatusText", status.Online ? "● 服务器在线" : "● 服务器离线");
+            SetForeground("OnlineStatusText", status.Online ? "#67E06E" : "#FF6B6B");
+
+            SetText("OnlineCountText", $"{status.OnlineCount} 人在线");
+            SetText("PingText", status.Online ? $"延迟 {status.PingMs}ms" : "延迟 -- ms");
+
+            SetText("ServerOnlineText", status.StatusText);
+            SetForeground("ServerOnlineText", status.Online ? "#67E06E" : "#FF6B6B");
+
+            SetText("ServerStatusText", status.Online ? "就绪" : "离线");
+            SetForeground("ServerStatusText", status.Online ? "#D3A14A" : "#FF6B6B");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"刷新服务器状态失败：{ex.Message}");
+            SetText("ServerStatusText", "异常");
+            SetForeground("ServerStatusText", "#FF6B6B");
+        }
+    }
+
+    private async Task BrowseClientFolderAsync()
+    {
+        try
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider is null)
+            {
+                AppendLog("无法打开目录选择器。");
+                return;
+            }
+
+            var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions
+                {
+                    Title = "选择魔兽世界客户端目录",
+                    AllowMultiple = false
+                });
+
+            var folder = folders.FirstOrDefault();
+            if (folder is null)
+            {
+                AppendLog("已取消选择客户端目录。");
+                return;
+            }
+
+            var path = folder.Path.LocalPath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                AppendLog("选中的目录不是本地目录。");
+                return;
+            }
+
+            SetTextBoxText("ClientPathBox", path);
+            InspectClientPath(path);
+            AppendLog($"已选择客户端目录：{path}");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"选择目录失败：{ex.Message}");
+        }
+    }
+
+    private void InspectClientPath(string path)
+    {
+        try
+        {
+            var result = _clientInspectService.Inspect(path);
+
+            SetForeground("ClientIntegrityDot", result.StatusColorHex);
+            SetText("ClientIntegrityText", result.StatusText);
+            SetForeground("ClientIntegrityText", result.StatusColorHex);
+            SetText("CacheSizeText", $"缓存：{ClientInspectService.FormatBytes(result.CacheBytes)}");
+            SetText("ClientVersionText", result.StatusText);
+            SetForeground("ClientVersionText", result.StatusColorHex);
+
+            if (!result.DirectoryExists)
+            {
+                SetText("StatusBarText", "状态：等待选择客户端目录");
+                // kept enabled
+                return;
+            }
+
+            if (result.IsRecommendedState)
+            {
+                SetText("StatusBarText", "状态：客户端状态良好");
+                // kept enabled
+            }
+            else if (result.IsLaunchable)
+            {
+                SetText("StatusBarText", "状态：客户端可启动，但建议先修复");
+                // kept enabled
+            }
+            else
+            {
+                SetText("StatusBarText", "状态：未检测到完整客户端");
+                // kept enabled
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"检测客户端异常：{ex.Message}");
+        }
+    }
+
+    private async Task FixRealmlistAsync()
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (!Directory.Exists(clientPath))
+            {
+                AppendLog("请先选择有效的客户端目录。");
+                return;
+            }
+
+            var realmlistPath = Path.Combine(clientPath, "realmlist.wtf");
+            await File.WriteAllTextAsync(realmlistPath, $"set realmlist {_launcherConfig.RealmHost}{Environment.NewLine}");
+            AppendLog($"Realmlist 已修复：{realmlistPath}");
+            InspectClientPath(clientPath);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"修复 Realmlist 失败：{ex.Message}");
+        }
+    }
+
+    private async Task ClearCacheAsync()
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (!Directory.Exists(clientPath))
+            {
+                AppendLog("请先选择有效的客户端目录。");
+                return;
+            }
+
+            await Task.Run(() =>
+            {
+                DeleteDirectorySafe(Path.Combine(clientPath, "Cache"));
+                DeleteDirectorySafe(Path.Combine(clientPath, "Data", "Cache"));
+                DeleteDirectorySafe(Path.Combine(clientPath, "Logs"));
+                DeleteDirectorySafe(Path.Combine(clientPath, "Errors"));
+                DeleteDirectorySafe(Path.Combine(clientPath, "Screenshots"));
+            });
+
+            AppendLog("缓存、日志、错误与截图目录已清理。");
+            InspectClientPath(clientPath);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"清理缓存失败：{ex.Message}");
+        }
+    }
+
+    private async Task DeepCleanClientAsync()
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (!Directory.Exists(clientPath))
+            {
+                AppendLog("请先选择有效的客户端目录。");
+                return;
+            }
+
+            await ClearCacheAsync();
+            var result = await Task.Run(() => _repairServices.RunRepairScript(clientPath));
+            AppendLog(result.Message);
+            InspectClientPath(clientPath);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"深度清理失败：{ex.Message}");
+        }
+    }
+
+    private async Task DownloadClientAsync()
+    {
+        try
+        {
+            SetBusy(true, "状态：正在下载客户端...");
+            SetProgress("RightProgressBar", 0);
+            SetText("DownloadProgressText", "准备下载...");
+            SetText("DownloadSpeedText", "-");
+            SetText("ServerStatusText", "下载中");
+            AppendLog("开始下载客户端到桌面。");
+
+            var result = await _downloadServices.DownloadClientAsync(
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                progress =>
+                {
+                    SetProgress("RightProgressBar", progress.ProgressPercent);
+                    SetText("DownloadProgressText", $"{progress.ProgressPercent:0.0}%  {progress.StatusText}");
+                    SetText("DownloadSpeedText", progress.SpeedText);
+                });
+
+            var config = _downloadServices.LoadConfig();
+            AppendLog($"下载地址：{config.DownloadUrl}");
+            AppendLog($"输出文件：{config.OutputFileName}");
+            AppendLog(result.Message);
+
+            SetProgress("RightProgressBar", 100);
+            SetText("DownloadProgressText", "下载完成");
+            SetText("ServerStatusText", "完成");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"下载失败：{ex.Message}");
+            SetText("DownloadProgressText", $"下载失败：{ex.Message}");
+            SetText("ServerStatusText", "失败");
+            SetForeground("ServerStatusText", "#FF6B6B");
+        }
+        finally
+        {
+            SetBusy(false, "状态：下载任务结束");
+        }
+    }
+
+    private void OpenRegisterUrl()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _launcherConfig.RegisterUrl,
+                UseShellExecute = true
+            });
+            AppendLog($"已打开注册网址：{_launcherConfig.RegisterUrl}");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"打开注册网址失败：{ex.Message}");
+        }
+    }
+
+    private void OpenExternalUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+            AppendLog($"已打开链接：{url}");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"打开链接失败：{ex.Message}");
+        }
+    }
+
+    private async Task EnterGameAsync()
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (!Directory.Exists(clientPath))
+            {
+                AppendLog("请先选择有效的客户端目录。");
+                return;
+            }
+
+            var wowExe = _clientInspectService.GetGameExecutable(clientPath);
+            if (string.IsNullOrWhiteSpace(wowExe) || !File.Exists(wowExe))
+            {
+                AppendLog("未找到 Wow.exe 或 Wow-64.exe。");
+                return;
+            }
+
+            await FixRealmlistAsync();
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = wowExe,
+                WorkingDirectory = clientPath,
+                UseShellExecute = true
+            });
+
+            AppendLog($"已启动游戏：{Path.GetFileName(wowExe)}");
+            SetText("StatusBarText", "状态：游戏已启动");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"启动游戏失败：{ex.Message}");
+        }
+    }
+
+    private async Task PatchUpdateAsync()
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (!Directory.Exists(clientPath))
+            {
+                AppendLog("请先选择有效的客户端目录。");
+                return;
+            }
+
+            SetBusy(true, "状态：正在检查服务器补丁...");
+            SetText("ServerStatusText", "更新中");
+            AppendLog("开始检查服务器补丁更新...");
+
+            var items = _patchService.LoadPatchItems(clientPath);
+            var missing = items.Where(i => i.State == "缺失" || i.State == "可更新" || i.State == "待校验").ToList();
+
+            if (missing.Count == 0)
+            {
+                AppendLog("所有补丁已是最新，无需更新。");
+                SetText("ServerStatusText", "最新");
+                SetBusy(false, "状态：补丁已是最新");
+                return;
+            }
+
+            var dataDir = Path.Combine(clientPath, "Data");
+            Directory.CreateDirectory(dataDir);
+
+            var config = _downloadServices.LoadConfig();
+            var baseUrl = config.DownloadUrl;
+            var lastSlash = baseUrl.LastIndexOf('/');
+            var patchBaseUrl = lastSlash >= 0 ? baseUrl[..(lastSlash + 1)] : "http://43.248.129.172:88/patches/";
+
+            int completed = 0;
+            foreach (var patch in missing)
+            {
+                if (string.IsNullOrWhiteSpace(patch.FileName))
+                    continue;
+
+                AppendLog($"下载补丁：{patch.Name} ({patch.FileName})...");
+
+                try
+                {
+                    using var http = new System.Net.Http.HttpClient();
+                    using var resp = await http.GetAsync(
+                        patchBaseUrl + patch.FileName,
+                        System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+
+                    resp.EnsureSuccessStatusCode();
+
+                    var targetPath = Path.Combine(dataDir, patch.FileName);
+                    await using var fs = File.Create(targetPath);
+                    await resp.Content.CopyToAsync(fs);
+
+                    completed++;
+                    SetText("DownloadProgressText", $"补丁 {completed}/{missing.Count}：{patch.Name}");
+                    SetProgress("RightProgressBar", completed * 100.0 / missing.Count);
+                    AppendLog($"补丁已下载：{patch.FileName}");
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"补丁下载失败 {patch.FileName}：{ex.Message}");
+                }
+            }
+
+            await CheckUpdateAsync();
+            AppendLog($"补丁更新完成（{completed}/{missing.Count}）。");
+            SetText("ServerStatusText", "完成");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"补丁更新失败：{ex.Message}");
+            SetBusy(false, "状态：补丁更新失败");
+            SetText("ServerStatusText", "失败");
+            SetForeground("ServerStatusText", "#FF6B6B");
+        }
+    }
+
+    private async Task RefreshAnnouncementAsync()
+    {
+        try
+        {
+            var announcement = await _announcementService.LoadAsync(
+                _launcherConfig.AnnouncementUrl,
+                _launcherConfig);
+
+            SetText("AnnouncementUpdatedText", $"最近更新：{announcement.UpdatedAt}");
+            SetText("AnnouncementTitleText", announcement.Title);
+            SetText("AnnouncementBodyText", announcement.Body);
+            SetText("AnnouncementLine1", announcement.Line1);
+            SetText("AnnouncementLine2", announcement.Line2);
+            SetText("AnnouncementLine3", announcement.Line3);
+            SetText("AnnouncementLine4", announcement.Line4);
+
+            AppendLog("公告已刷新。");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"刷新公告失败：{ex.Message}");
+        }
+    }
+
+    private async Task CheckUpdateAsync()
+    {
+        try
+        {
+            SetBusy(true, "状态：正在检查补丁更新...");
+            await Task.Delay(150);
+
+            var items = _patchService.LoadPatchItems(GetTextBoxText("ClientPathBox"));
+            RenderPatchList(items);
+            SetText("PatchCountText", $"补丁列表（{items.Count}）");
+            AppendLog("补丁检查完成。");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"检查更新失败：{ex.Message}");
+        }
+        finally
+        {
+            SetBusy(false, "状态：补丁检查完成");
+        }
+    }
+
+    private void RenderPatchList(IEnumerable<PatchItem> items)
+    {
+        var panel = FindCtrl<StackPanel>("PatchListPanel");
+        if (panel is null)
+        {
+            AppendLog("未找到控件：PatchListPanel");
+            return;
+        }
+
+        panel.Children.Clear();
+
+        foreach (var item in items)
+        {
+            var border = new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.Parse("#80613F18")),
+                Background = new SolidColorBrush(Color.Parse("#B10A1018")),
+                Padding = new Thickness(10, 8),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("3*,1.2*,1.2*,1.2*,1*")
+            };
+
+            grid.Children.Add(new TextBlock
+            {
+                Text = item.Name,
+                Foreground = new SolidColorBrush(Color.Parse("#F1E3CC")),
+                FontSize = 16,
+                FontWeight = FontWeight.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var versionText = new TextBlock
+            {
+                Text = item.Version,
+                Foreground = new SolidColorBrush(Color.Parse("#E2B45A")),
+                FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(versionText, 1);
+            grid.Children.Add(versionText);
+
+            var sizeText = new TextBlock
+            {
+                Text = item.Size,
+                Foreground = new SolidColorBrush(Color.Parse("#C5B08B")),
+                FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(sizeText, 2);
+            grid.Children.Add(sizeText);
+
+            var stateBorder = new Border
+            {
+                Background = new SolidColorBrush(Color.Parse("#28000000")),
+                BorderBrush = new SolidColorBrush(Color.Parse(item.StateColor)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(8, 3),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = item.State,
+                    Foreground = new SolidColorBrush(Color.Parse(item.StateColor)),
+                    FontSize = 14,
+                    FontWeight = FontWeight.Bold
+                }
+            };
+            Grid.SetColumn(stateBorder, 3);
+            grid.Children.Add(stateBorder);
+
+            var action = string.IsNullOrWhiteSpace(item.FileName)
+                ? "已安装"
+                : item.State is "缺失" or "可更新" or "待校验"
+                    ? "安装"
+                    : "已安装";
+
+            var actionColor = action == "安装" ? "#F0C97E" : "#67E06E";
+
+            var actionText = new TextBlock
+            {
+                Text = action,
+                Foreground = new SolidColorBrush(Color.Parse(actionColor)),
+                FontSize = 15,
+                FontWeight = FontWeight.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            Grid.SetColumn(actionText, 4);
+            grid.Children.Add(actionText);
+
+            border.Child = grid;
+            panel.Children.Add(border);
+        }
+    }
+
+    private static void DeleteDirectorySafe(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+        catch
+        {
+        }
+    }
+
+    private void AppendLog(string message)
+    {
+        var logBox = FindCtrl<TextBox>("LogBox");
+
+        if (logBox is not null)
+        {
+            string line = $"[{DateTime.Now:HH:mm:ss}] {message}";
+
+            if (!string.IsNullOrWhiteSpace(logBox.Text))
+            {
+                var lines = logBox.Text.Split(Environment.NewLine);
+                if (lines.Length > 200)
+                    logBox.Text = string.Join(Environment.NewLine, lines.Skip(lines.Length - 180));
+            }
+
+            logBox.Text = string.IsNullOrWhiteSpace(logBox.Text)
+                ? line
+                : $"{logBox.Text}{Environment.NewLine}{line}";
+
+            logBox.CaretIndex = logBox.Text?.Length ?? 0;
+        }
+
+        SafeAppendFileLog($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}{Environment.NewLine}");
+    }
+
+    private void SetBusy(bool isBusy, string statusText)
+    {
+        SetButtonEnabled("BrowseClientButton", !isBusy);
+        SetButtonEnabled("FixRealmlistButton", !isBusy);
+        SetButtonEnabled("ClearCacheButton", !isBusy);
+        SetButtonEnabled("RepairClientFullButton", !isBusy);
+        SetButtonEnabled("RegisterButton", !isBusy);
+        SetButtonEnabled("CheckUpdateButton", !isBusy);
+        SetButtonEnabled("PatchUpdateButton", !isBusy);
+        SetButtonEnabled("RefreshAnnouncementButton", !isBusy);
+
+        if (isBusy)
+        {
+            // kept enabled
+        }
+        else
+        {
+            var canEnter = !string.IsNullOrWhiteSpace(
+                _clientInspectService.GetGameExecutable(GetTextBoxText("ClientPathBox")));
+            // kept enabled
+        }
+
+        SetText("StatusBarText", statusText);
+    }
+
+    private void LoadHeroImage()
+    {
+        var images = new (string Name, string RelPath)[]
+        {
+            ("HeroImage", "Assets/hero/hero_main.png"),
+            ("LogoImage", "Assets/logo/logo.png"),
+            ("BannerRaidImage", "Assets/banners/banner_raid.png"),
+            ("BannerEventImage", "Assets/banners/banner_event.png"),
+            ("BannerFeatureImage", "Assets/banners/banner_feature.png"),
+        };
+        foreach (var (name, rel) in images)
+        {
+            try
+            {
+                var ctrl = FindCtrl<Image>(name);
+                if (ctrl == null) continue;
+                var path = Path.Combine(AppContext.BaseDirectory, rel);
+                if (!File.Exists(path)) continue;
+                using var fs = File.OpenRead(path);
+                ctrl.Source = new Bitmap(fs);
+            }
+            catch { }
+        }
+    }
+
+    private void TryLoadBackground()
+    {
+        var backgroundImage = FindCtrl<Image>("BackgroundImage");
+        if (backgroundImage is null)
+        {
+            AppendLog("未找到控件：BackgroundImage");
+            return;
+        }
+
+        string[] candidates =
+        {
+            Path.Combine(AppContext.BaseDirectory, "Assets", "bg.jpg"),
+            Path.Combine(AppContext.BaseDirectory, "Assets", "bg.jpeg"),
+            Path.Combine(AppContext.BaseDirectory, "Assets", "bg.png"),
+            Path.Combine(AppContext.BaseDirectory, "bg.jpg"),
+            Path.Combine(AppContext.BaseDirectory, "新登陆器背景.png")
+        };
+
+        foreach (var path in candidates)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                    continue;
+
+                using var fs = File.OpenRead(path);
+                backgroundImage.Source = new Bitmap(fs);
+                AppendLog($"背景图已加载：{Path.GetFileName(path)}");
+                return;
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"背景图加载失败：{ex.Message}");
+            }
+        }
+
+        AppendLog("未找到可用背景图。");
+    }
+
+    private T? FindCtrl<T>(string name) where T : Avalonia.Controls.Control
+    {
+        return this.FindControl<T>(name);
+    }
+
+    private void SetText(string controlName, string? value)
+    {
+        var tb = FindCtrl<TextBlock>(controlName);
+        if (tb is not null)
+        {
+            tb.Text = value ?? string.Empty;
+            return;
+        }
+
+        var txt = FindCtrl<TextBox>(controlName);
+        if (txt is not null)
+        {
+            txt.Text = value ?? string.Empty;
+            return;
+        }
+    }
+
+    private string GetTextBoxText(string controlName)
+    {
+        return FindCtrl<TextBox>(controlName)?.Text ?? string.Empty;
+    }
+
+    private void SetTextBoxText(string controlName, string? value)
+    {
+        var txt = FindCtrl<TextBox>(controlName);
+        if (txt is not null)
+            txt.Text = value ?? string.Empty;
+    }
+
+    private void SetForeground(string controlName, string colorHex)
+    {
+        var brush = new SolidColorBrush(Color.Parse(colorHex));
+
+        var tb = FindCtrl<TextBlock>(controlName);
+        if (tb is not null)
+        {
+            tb.Foreground = brush;
+            return;
+        }
+    }
+
+    private void SetButtonEnabled(string controlName, bool enabled)
+    {
+        var btn = FindCtrl<Button>(controlName);
+        if (btn is not null)
+            btn.IsEnabled = enabled;
+    }
+
+    private void SetProgress(string controlName, double value)
+    {
+        var bar = FindCtrl<ProgressBar>(controlName);
+        if (bar is not null)
+            bar.Value = value;
+    }
+
+    private void StartEnterGameParticles()
+    {
+        if (this.FindControl<Canvas>("EnterGameParticlesCanvas") is not { } canvas)
+            return;
+
+        void SpawnParticle()
+        {
+            var dot = new Ellipse
+            {
+                Width = _particleRandom.Next(2, 5),
+                Height = _particleRandom.Next(2, 5),
+                Fill = new SolidColorBrush(Color.Parse(_particleRandom.Next(0, 2) == 0 ? "#FFF0B8" : "#FFD86E")),
+                Opacity = 0.0,
+                IsHitTestVisible = false
+            };
+
+            var startX = _particleRandom.NextDouble() * 320 + 12;
+            var startY = 88 + _particleRandom.NextDouble() * 8;
+            Canvas.SetLeft(dot, startX);
+            Canvas.SetTop(dot, startY);
+            canvas.Children.Add(dot);
+
+            var life = 0;
+            var maxLife = 24 + _particleRandom.Next(0, 10);
+            var rise = 12 + _particleRandom.NextDouble() * 16;
+            var drift = (_particleRandom.NextDouble() - 0.5) * 12;
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+            timer.Tick += (_, _) =>
+            {
+                life++;
+                var t = (double)life / maxLife;
+                var ease = t < 0.5 ? t * 2 : (1.0 - t) * 2;
+                dot.Opacity = 0.55 * Math.Max(0, ease);
+                Canvas.SetLeft(dot, startX + drift * t);
+                Canvas.SetTop(dot, startY - rise * t);
+                if (life >= maxLife)
+                {
+                    timer.Stop();
+                    canvas.Children.Remove(dot);
+                }
+            };
+            timer.Start();
+        }
+
+        _enterGameParticleTimer?.Stop();
+        _enterGameParticleTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(280) };
+        _enterGameParticleTimer.Tick += (_, _) =>
+        {
+            if (!this.IsVisible || !canvas.IsEffectivelyVisible)
+                return;
+            SpawnParticle();
+            if (_particleRandom.NextDouble() < 0.55)
+                SpawnParticle();
+        };
+        _enterGameParticleTimer.Start();
+    }
+
+    private void SafeAppendFileLog(string text)
+    {
+        try
+        {
+            File.AppendAllText(LogPath, text);
+        }
+        catch
+        {
+        }
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (e.Source is Button || e.Source is TextBox)
+            return;
+
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+}
