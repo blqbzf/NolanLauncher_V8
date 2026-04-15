@@ -76,11 +76,6 @@ public sealed class LegacyUpdateService
                 ? Path.Combine("Data", "zhCN", patch.FileName ?? string.Empty)
                 : patch.RelativePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             var localPath = Path.Combine(clientPath, relative);
-            var tempPath = localPath + ".tmp";
-
-            if (!File.Exists(localPath) && File.Exists(tempPath))
-                TryFinalizeTempFile(tempPath, localPath);
-
             if (!File.Exists(localPath))
             {
                 patch.State = "缺失";
@@ -122,7 +117,6 @@ public sealed class LegacyUpdateService
             ? Path.Combine("Data", "zhCN", patch.FileName ?? string.Empty)
             : patch.RelativePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
         var localPath = Path.Combine(clientPath, relative);
-        var tempPath = localPath + ".tmp";
         var dir = Path.GetDirectoryName(localPath);
         if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
 
@@ -130,9 +124,12 @@ public sealed class LegacyUpdateService
         using var response = await http.GetAsync(patch.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
+        if (File.Exists(localPath))
+            File.Delete(localPath);
+
         var total = response.Content.Headers.ContentLength ?? 0;
         await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
-        await using (var output = File.Create(tempPath))
+        await using (var output = File.Create(localPath))
         {
             var buffer = new byte[81920];
             long readTotal = 0;
@@ -151,15 +148,15 @@ public sealed class LegacyUpdateService
 
         if (!string.IsNullOrWhiteSpace(patch.Hash))
         {
-            var actual = await ComputeSha256Async(tempPath);
+            var actual = await ComputeSha256Async(localPath);
             if (!actual.Equals(patch.Hash, StringComparison.OrdinalIgnoreCase))
             {
-                File.Delete(tempPath);
+                File.Delete(localPath);
                 throw new Exception($"补丁校验失败：{patch.Name}");
             }
         }
 
-        TryFinalizeTempFile(tempPath, localPath);
+        progress?.Report((100, $"正在完成 {patch.Name}", $"已直接写入正式文件：{localPath}"));
 
         if (File.Exists(localPath) && !string.IsNullOrWhiteSpace(patch.FileName) && patch.FileName.Contains("patch-zhCN-Z", StringComparison.OrdinalIgnoreCase))
         {
@@ -180,21 +177,6 @@ public sealed class LegacyUpdateService
 
         await SaveCompletedFileAsync(localPath, patch.Hash ?? string.Empty);
         return true;
-    }
-
-    private static void TryFinalizeTempFile(string tempPath, string localPath)
-    {
-        var dir = Path.GetDirectoryName(localPath);
-        if (!string.IsNullOrWhiteSpace(dir))
-            Directory.CreateDirectory(dir);
-
-        if (!File.Exists(tempPath))
-            return;
-
-        if (File.Exists(localPath))
-            File.Delete(localPath);
-
-        File.Move(tempPath, localPath, true);
     }
 
     private async Task SaveCompletedFileAsync(string filePath, string hash)
