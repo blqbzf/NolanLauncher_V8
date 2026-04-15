@@ -131,20 +131,22 @@ public sealed class LegacyUpdateService
         response.EnsureSuccessStatusCode();
 
         var total = response.Content.Headers.ContentLength ?? 0;
-        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var output = File.Create(tempPath);
-        var buffer = new byte[81920];
-        long readTotal = 0;
-        int read;
-        var sw = Stopwatch.StartNew();
-
-        while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+        await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
+        await using (var output = File.Create(tempPath))
         {
-            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-            readTotal += read;
-            var percent = total > 0 ? readTotal * 100d / total : 0;
-            var speed = readTotal / Math.Max(sw.Elapsed.TotalSeconds, 0.1);
-            progress?.Report((percent, $"正在下载 {patch.Name} ({percent:0.0}%)", $"{ClientInspectService.FormatBytes(readTotal)} / {(total > 0 ? ClientInspectService.FormatBytes(total) : "未知")}  {ClientInspectService.FormatBytes((long)speed)}/s"));
+            var buffer = new byte[81920];
+            long readTotal = 0;
+            int read;
+            var sw = Stopwatch.StartNew();
+
+            while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+            {
+                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                readTotal += read;
+                var percent = total > 0 ? readTotal * 100d / total : 0;
+                var speed = readTotal / Math.Max(sw.Elapsed.TotalSeconds, 0.1);
+                progress?.Report((percent, $"正在下载 {patch.Name} ({percent:0.0}%)", $"{ClientInspectService.FormatBytes(readTotal)} / {(total > 0 ? ClientInspectService.FormatBytes(total) : "未知")}  {ClientInspectService.FormatBytes((long)speed)}/s"));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(patch.Hash))
