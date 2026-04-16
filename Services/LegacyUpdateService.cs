@@ -68,6 +68,9 @@ public sealed class LegacyUpdateService
 
     public async Task<List<PatchItem>> GetPatchStatusAsync(string clientPath, bool useTestServer)
     {
+        // 清理启动器遗留的 .tmp/.tMP 临时文件
+        CleanTempPatchFiles(clientPath);
+
         var patches = await GetPatchesAsync(useTestServer);
 
         foreach (var patch in patches)
@@ -224,4 +227,43 @@ public sealed class LegacyUpdateService
     private static HttpClient CreateHttp() => new() { Timeout = TimeSpan.FromSeconds(10) };
     private static string AppendTs(string url) => url + (url.Contains('?') ? '&' : '?') + "ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     private static string? GetString(JsonElement e, string name) => e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+
+    /// <summary>
+    /// 清理旧版启动器下载补丁时遗留的 .tmp/.tMP 临时文件，并尝试重命名为正式 .mpq
+    /// </summary>
+    private static void CleanTempPatchFiles(string clientPath)
+    {
+        try
+        {
+            var zhCnDir = Path.Combine(clientPath, "Data", "zhCN");
+            if (!Directory.Exists(zhCnDir)) return;
+
+            var tempExts = new[] { ".tmp", ".tMP", ".TMP", ".temp" };
+            foreach (var file in Directory.GetFiles(zhCnDir, "patch-*.*"))
+            {
+                var ext = Path.GetExtension(file);
+                if (Array.IndexOf(tempExts, ext) < 0) continue;
+
+                // patch-zhCN-Z.mpq.tmp -> patch-zhCN-Z.mpq
+                var baseName = Path.GetFileNameWithoutExtension(file);
+                // 去掉可能的多重后缀如 patch-zhCN-Z.mpq.tmp -> patch-zhCN-Z
+                if (baseName.EndsWith(".mpq", StringComparison.OrdinalIgnoreCase))
+                    baseName = baseName[..^4];
+
+                var targetPath = Path.Combine(zhCnDir, baseName + ".mpq");
+                try
+                {
+                    if (File.Exists(targetPath))
+                        File.Delete(targetPath);
+                    File.Move(file, targetPath);
+                }
+                catch
+                {
+                    // 移动失败则直接删除临时文件
+                    try { File.Delete(file); } catch { }
+                }
+            }
+        }
+        catch { }
+    }
 }

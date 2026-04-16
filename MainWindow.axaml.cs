@@ -756,10 +756,15 @@ public partial class MainWindow : Window
             AppendLog("开始检查正式服 combined-release-version / combined-release-manifest...");
 
             var version = await _legacyUpdateService.GetVersionAsync(_useTestServer);
+            var allPatchStatus = await _legacyUpdateService.GetPatchStatusAsync(clientPath, _useTestServer);
+            foreach (var statusPatch in allPatchStatus)
+                AppendLog($"补丁状态诊断：name={statusPatch.Name}, file={statusPatch.FileName}, relative={statusPatch.RelativePath}, state={statusPatch.State}, hash={statusPatch.Hash}");
+
             var missing = forceDownload
                 ? await _legacyUpdateService.GetPatchesAsync(_useTestServer)
-                : await _legacyUpdateService.GetMissingOrOutdatedAsync(clientPath, _useTestServer);
+                : allPatchStatus.Where(p => p.State.StartsWith("缺失", StringComparison.OrdinalIgnoreCase) || p.State.StartsWith("可更新", StringComparison.OrdinalIgnoreCase) || p.State == "待校验").ToList();
 
+            AppendLog($"补丁更新诊断：forceDownload={forceDownload}, missing.Count={missing.Count}, clientPath={clientPath}");
             AppendLog(forceDownload
                 ? $"用户点击检查更新：按旧版逻辑强制拉取正式服补丁（{missing.Count} 个），目标版本 {version}。"
                 : $"旧版逻辑检测到需要更新的补丁：{missing.Count} 个，目标版本 {version}。");
@@ -804,6 +809,7 @@ public partial class MainWindow : Window
                         ? Path.Combine(clientPath, patch.RelativePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar))
                         : Path.Combine(dataDir, patch.FileName);
                     AppendLog($"补丁保存路径：{targetPath}");
+                    AppendLog($"下载前检查：exists={File.Exists(targetPath)}, size={(File.Exists(targetPath) ? new FileInfo(targetPath).Length : 0)}");
 
                     var itemProgress = new Progress<(double Percent, string Status, string Detail)>(p =>
                     {
@@ -813,7 +819,14 @@ public partial class MainWindow : Window
                         SetText("DownloadSpeedText", p.Detail);
                     });
 
+                    AppendLog($"开始执行 DownloadPatchAsync：{patch.Name}");
                     await _legacyUpdateService.DownloadPatchAsync(patch, clientPath, itemProgress);
+                    AppendLog($"DownloadPatchAsync 返回：exists={File.Exists(targetPath)}, size={(File.Exists(targetPath) ? new FileInfo(targetPath).Length : 0)}");
+                    if (File.Exists(targetPath))
+                    {
+                        var actualHash = await ComputeFileSha256Async(targetPath);
+                        AppendLog($"下载后 hash：local={actualHash}, manifest={patch.Hash}");
+                    }
 
                     completed++;
                     var percent = completed * 100.0 / missing.Count;
@@ -1238,11 +1251,10 @@ public partial class MainWindow : Window
     private void AppendLog(string message)
     {
         var logBox = FindCtrl<TextBox>("LogBox");
+        var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
 
         if (logBox is not null)
         {
-            var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
-
             if (!string.IsNullOrWhiteSpace(logBox.Text))
             {
                 var lines = logBox.Text.Split(Environment.NewLine);
@@ -1257,7 +1269,25 @@ public partial class MainWindow : Window
             logBox.CaretIndex = logBox.Text?.Length ?? 0;
         }
 
-        SafeAppendFileLog($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}{Environment.NewLine}");
+        var fileLine = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}{Environment.NewLine}";
+        SafeAppendFileLog(fileLine);
+        SafeAppendClientFileLog(fileLine);
+    }
+
+    private void SafeAppendClientFileLog(string text)
+    {
+        try
+        {
+            var clientPath = GetTextBoxText("ClientPathBox").Trim();
+            if (string.IsNullOrWhiteSpace(clientPath) || !Directory.Exists(clientPath))
+                return;
+
+            var logPath = Path.Combine(clientPath, "NolanLauncher_debug.log");
+            File.AppendAllText(logPath, text);
+        }
+        catch
+        {
+        }
     }
 
     private void SetBusy(bool isBusy, string statusText)
@@ -1488,6 +1518,14 @@ public partial class MainWindow : Window
         var prop = _launcherConfig.GetType().GetProperty("WoWDatabaseUrl");
         var value = prop?.GetValue(_launcherConfig) as string;
         return string.IsNullOrWhiteSpace(value) ? "https://80.nfuwow.com/" : value;
+    }
+
+    private static async Task<string> ComputeFileSha256Async(string path)
+    {
+        await using var stream = File.OpenRead(path);
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = await sha.ComputeHashAsync(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
