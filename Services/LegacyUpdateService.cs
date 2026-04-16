@@ -76,9 +76,11 @@ public sealed class LegacyUpdateService
                 ? Path.Combine("Data", "zhCN", patch.FileName ?? string.Empty)
                 : patch.RelativePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             var localPath = Path.Combine(clientPath, relative);
+            patch.State = $"校验中: path={localPath}";
+
             if (!File.Exists(localPath))
             {
-                patch.State = "缺失";
+                patch.State = $"缺失 | path={localPath}";
                 patch.StateColor = "#FF7B7B";
                 continue;
             }
@@ -88,13 +90,15 @@ public sealed class LegacyUpdateService
                 var hash = await ComputeSha256Async(localPath);
                 if (!hash.Equals(patch.Hash, StringComparison.OrdinalIgnoreCase))
                 {
-                    patch.State = "可更新";
+                    patch.State = $"可更新 | local={hash} manifest={patch.Hash}";
                     patch.StateColor = "#FFB86B";
                     continue;
                 }
             }
 
-            patch.State = "已安装";
+            patch.State = !string.IsNullOrWhiteSpace(patch.Hash)
+                ? $"已安装 | hash={patch.Hash}"
+                : "已安装";
             patch.StateColor = "#6DE68A";
         }
 
@@ -124,12 +128,10 @@ public sealed class LegacyUpdateService
         using var response = await http.GetAsync(patch.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        if (File.Exists(localPath))
-            File.Delete(localPath);
-
+        byte[] downloadedBytes;
         var total = response.Content.Headers.ContentLength ?? 0;
         await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
-        await using (var output = File.Create(localPath))
+        await using (var memory = new MemoryStream())
         {
             var buffer = new byte[81920];
             long readTotal = 0;
@@ -138,25 +140,33 @@ public sealed class LegacyUpdateService
 
             while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
             {
-                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                await memory.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                 readTotal += read;
                 var percent = total > 0 ? readTotal * 100d / total : 0;
                 var speed = readTotal / Math.Max(sw.Elapsed.TotalSeconds, 0.1);
                 progress?.Report((percent, $"正在下载 {patch.Name} ({percent:0.0}%)", $"{ClientInspectService.FormatBytes(readTotal)} / {(total > 0 ? ClientInspectService.FormatBytes(total) : "未知")}  {ClientInspectService.FormatBytes((long)speed)}/s"));
             }
+
+            downloadedBytes = memory.ToArray();
         }
 
         if (!string.IsNullOrWhiteSpace(patch.Hash))
         {
-            var actual = await ComputeSha256Async(localPath);
+            using var sha = SHA256.Create();
+            var actual = Convert.ToHexString(sha.ComputeHash(downloadedBytes)).ToLowerInvariant();
             if (!actual.Equals(patch.Hash, StringComparison.OrdinalIgnoreCase))
-            {
-                File.Delete(localPath);
                 throw new Exception($"补丁校验失败：{patch.Name}");
-            }
         }
 
-        progress?.Report((100, $"正在完成 {patch.Name}", $"已直接写入正式文件：{localPath}"));
+        if (File.Exists(localPath))
+            File.Delete(localPath);
+
+        await File.WriteAllBytesAsync(localPath, downloadedBytes, cancellationToken);
+
+        if (!File.Exists(localPath))
+            throw new Exception($"补丁覆盖失败：{localPath}");
+
+        progress?.Report((100, $"正在完成 {patch.Name}", $"已校验完成并覆盖正式文件：{localPath}"));
 
         if (File.Exists(localPath) && !string.IsNullOrWhiteSpace(patch.FileName) && patch.FileName.Contains("patch-zhCN-Z", StringComparison.OrdinalIgnoreCase))
         {
