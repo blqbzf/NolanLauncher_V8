@@ -167,6 +167,15 @@ public sealed class LegacyUpdateService
                 throw new Exception($"补丁校验失败：{patch.Name}");
         }
 
+        // Size protection: never replace with a smaller file
+        if (File.Exists(localPath))
+        {
+            var existingSize = new FileInfo(localPath).Length;
+            var newSize = downloadedBytes.Length;
+            if (newSize < existingSize)
+                throw new Exception($"新补丁({newSize}B)小于本地文件({existingSize}B)，拒绝覆盖。请检查服务端补丁是否完整。");
+        }
+
         if (File.Exists(localPath))
         {
             for (int i = 0; i < 5; i++)
