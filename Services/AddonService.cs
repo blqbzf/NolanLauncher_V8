@@ -31,6 +31,14 @@ public sealed class AddonService
             using var ms = new MemoryStream(zipBytes);
             using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
 
+            // Clean old addon dirs before extracting
+            foreach (var dir in new[] { "NolanUnid", "AIO_Client" })
+            {
+                var oldDir = Path.Combine(addonsDir, dir);
+                if (Directory.Exists(oldDir))
+                    try { Directory.Delete(oldDir, true); } catch { }
+            }
+
             int updated = 0;
             foreach (var entry in archive.Entries)
             {
