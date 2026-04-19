@@ -28,7 +28,11 @@ public sealed class RepairServices
                 log.AppendLine($"embeddedScript.read.success={!string.IsNullOrEmpty(scriptText)}");
 
                 if (string.IsNullOrEmpty(scriptText))
-                    return new OperationResult { Success = false, Message = $"repair_client.cmd 内嵌读取失败\n{log}" };
+                {
+                    // 内嵌读取失败时使用硬编码的清理脚本
+                    scriptText = GenerateDefaultRepairScript();
+                    log.AppendLine("used hardcoded fallback script");
+                }
 
                 File.WriteAllText(clientScript, scriptText);
                 log.AppendLine($"clientScript.exists.afterWrite={File.Exists(clientScript)}");
@@ -68,4 +72,23 @@ public sealed class RepairServices
             return new OperationResult { Success = false, Message = $"执行 repair_client.cmd 失败\n{log}" };
         }
     }
+
+    private static string GenerateDefaultRepairScript() => """
+@echo off
+chcp 65001 >nul 2>&1
+echo 正在清理缓存...
+if exist "Cache" rd /s /q "Cache"
+if exist "Data\Cache" rd /s /q "Data\Cache"
+if exist "DownCache" rd /s /q "DownCache"
+if exist "Errors" rd /s /q "Errors"
+if exist "Logs" rd /s /q "Logs"
+if exist "Screenshots" rd /s /q "Screenshots"
+if exist "WTF" rd /s /q "WTF"
+REM 清理旧版残留的临时补丁文件（保留正式 .mpq）
+del /s /q "Data\zhCN\patch-zhCN-Z.mpq.tmp" 2>nul
+del /s /q "Data\zhCN\patch-zhCN-Z.mpq.TMP" 2>nul
+echo 清理完成！
+timeout /t 3 >nul
+exit
+""";
 }

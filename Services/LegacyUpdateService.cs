@@ -108,6 +108,12 @@ public sealed class LegacyUpdateService
         return patches;
     }
 
+    public async Task<bool> IsPatchUpToDateAsync(string clientPath, bool useTestServer)
+    {
+        var missing = await GetMissingOrOutdatedAsync(clientPath, useTestServer);
+        return missing.Count == 0;
+    }
+
     public async Task<List<PatchItem>> GetMissingOrOutdatedAsync(string clientPath, bool useTestServer)
     {
         var patches = await GetPatchStatusAsync(clientPath, useTestServer);
@@ -162,7 +168,34 @@ public sealed class LegacyUpdateService
         }
 
         if (File.Exists(localPath))
-            File.Delete(localPath);
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    File.Delete(localPath);
+                    break;
+                }
+                catch (IOException ex) when (i < 4)
+                {
+                    progress?.Report(((i + 1) * 15, $"正在重试覆盖 {patch.Name}", $"文件被占用，等待重试 ({i + 1}/5)…"));
+                    await Task.Delay(1000, cancellationToken);
+                }
+                catch (IOException ex)
+                {
+                    // 5次都失败，尝试用 cmd 强制删除
+                    try
+                    {
+                        var tmpDel = localPath + ".del.bat";
+                        await File.WriteAllTextAsync(tmpDel, $"@echo off\necho y | del /f /q \"{localPath}\"\ndel /f /q \"%~f0\"\n", cancellationToken);
+                        var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/c \"{tmpDel}\"", UseShellExecute = false, CreateNoWindow = true });
+                        p?.WaitForExit(5000);
+                        if (!File.Exists(localPath)) break;
+                    } catch { }
+                    throw new IOException($"文件被其他进程占用，无法覆盖补丁。请确认 Wow.exe 已完全关闭（检查任务管理器），然后重试。", ex);
+                }
+            }
+        }
 
         await File.WriteAllBytesAsync(localPath, downloadedBytes, cancellationToken);
 
@@ -224,7 +257,15 @@ public sealed class LegacyUpdateService
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static HttpClient CreateHttp() => new() { Timeout = TimeSpan.FromSeconds(10) };
+    private static HttpClient CreateHttp()
+    {
+        var handler = new HttpClientHandler
+        {
+            Proxy = null,
+            UseProxy = false
+        };
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+    }
     private static string AppendTs(string url) => url + (url.Contains('?') ? '&' : '?') + "ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     private static string? GetString(JsonElement e, string name) => e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
 

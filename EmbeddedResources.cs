@@ -34,6 +34,24 @@ internal static class EmbeddedResources
             return reader.ReadToEnd();
         }
 
+        // Fallback: try assembly manifest resources (for single-file publish)
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith(relativePath.Replace('/', '.').Replace('\\', '.')));
+            if (resourceName != null)
+            {
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using var reader = new StreamReader(stream, Encoding.UTF8);
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+        catch { }
+
         return null;
     }
 

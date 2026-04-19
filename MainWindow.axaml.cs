@@ -700,6 +700,20 @@ public partial class MainWindow : Window
             SetBusy(true, "状态：正在启动游戏...");
             AppendLog("进入游戏前先执行正式服补丁检查...");
             await PatchUpdateAsync(forceDownload: false);
+
+            // 验证补丁是否最新，不最新则禁止启动
+            var isUpToDate = await _legacyUpdateService.IsPatchUpToDateAsync(clientPath, _useTestServer);
+            if (!isUpToDate)
+            {
+                AppendLog("补丁未更新到最新版本，禁止启动游戏。请关闭游戏后重新点击检查更新。");
+                SetText("DownloadProgressText", "⚠ 补丁未更新，请关闭游戏后点检查更新");
+                SetText("DownloadSpeedText", "无法启动游戏");
+                return;
+            }
+
+            // Ensure AIO + NolanUnid addons are installed
+            await AddonService.EnsureAddonsAsync(clientPath, msg => AppendLog(msg));
+
             await FixRealmlistAsync();
 
             var rootRealmlist = Path.Combine(clientPath, "realmlist.wtf");
@@ -840,21 +854,36 @@ public partial class MainWindow : Window
                 catch (Exception ex)
                 {
                     AppendLog($"补丁下载失败 {patch.FileName}：{ex.Message}");
+                    SetText("DownloadProgressText", $"⚠ 补丁更新失败：{patch.Name}");
+                    SetText("DownloadSpeedText", ex.Message);
+                    SetForeground("ServerStatusText", "#FF6B6B");
+                    SetText("ServerStatusText", "更新失败");
+                    SetProgress("RightProgressBar", 0);
+                    patch.State = $"更新失败：{ex.Message}";
+                    patch.StateColor = "#FF6B6B";
                 }
             }
 
             SetProgress("RightProgressBar", 100);
-            SetText("DownloadProgressText", $"补丁更新完成（{completed}/{missing.Count}）");
-            SetText("DownloadSpeedText", "写入完成");
+
+            if (completed < missing.Count)
+            {
+                SetText("DownloadProgressText", $"⚠ 补丁更新不完整（{completed}/{missing.Count}），请关闭游戏后重试");
+                SetText("DownloadSpeedText", "部分补丁未成功");
+                SetText("ServerStatusText", "更新失败");
+                SetForeground("ServerStatusText", "#FF6B6B");
+                AppendLog($"补丁更新不完整（{completed}/{missing.Count}）。");
+            }
+            else
+            {
+                SetText("DownloadProgressText", $"补丁更新成功（{completed}/{missing.Count}）");
+                SetText("DownloadSpeedText", "写入完成");
+                AppendLog($"补丁更新完成（{completed}/{missing.Count}）。");
+            }
+
             await Task.Delay(400);
 
             await CheckUpdateAsync();
-            AppendLog($"补丁更新完成（{completed}/{missing.Count}）。");
-
-            SetText("ServerStatusText", "完成");
-            SetForeground("ServerStatusText", "#67E06E");
-            SetText("DownloadProgressText", $"补丁更新完成（{completed}/{missing.Count}）");
-            SetText("DownloadSpeedText", "-");
         }
         catch (Exception ex)
         {

@@ -14,6 +14,10 @@ public sealed class PatchService
 
     public IReadOnlyList<PatchItem> LoadPatchItems(string? clientPath = null)
     {
+        // 清理旧版启动器遗留的 .tmp/.tMP
+        if (!string.IsNullOrWhiteSpace(clientPath) && Directory.Exists(clientPath))
+            CleanTempPatchFiles(clientPath);
+
         var items = LoadManifest();
 
         if (string.IsNullOrWhiteSpace(clientPath) || !Directory.Exists(clientPath))
@@ -76,7 +80,7 @@ public sealed class PatchService
     {
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            using var http = new HttpClient(new HttpClientHandler { Proxy = null, UseProxy = false }) { Timeout = TimeSpan.FromSeconds(8) };
             var url = ReleaseManifestUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var json = http.GetStringAsync(url).GetAwaiter().GetResult();
             using var doc = JsonDocument.Parse(json);
@@ -147,5 +151,41 @@ public sealed class PatchService
                 Required = true
             }
         ];
+    }
+
+    /// <summary>
+    /// 清理旧版启动器下载补丁时遗留的 .tmp/.tMP 临时文件，并尝试重命名为正式 .mpq
+    /// </summary>
+    private static void CleanTempPatchFiles(string clientPath)
+    {
+        try
+        {
+            var zhCnDir = Path.Combine(clientPath, "Data", "zhCN");
+            if (!Directory.Exists(zhCnDir)) return;
+
+            var tempExts = new[] { ".tmp", ".tMP", ".TMP", ".temp" };
+            foreach (var file in Directory.GetFiles(zhCnDir, "patch-*.*"))
+            {
+                var ext = Path.GetExtension(file);
+                if (Array.IndexOf(tempExts, ext) < 0) continue;
+
+                var baseName = Path.GetFileNameWithoutExtension(file);
+                if (baseName.EndsWith(".mpq", StringComparison.OrdinalIgnoreCase))
+                    baseName = baseName[..^4];
+
+                var targetPath = Path.Combine(zhCnDir, baseName + ".mpq");
+                try
+                {
+                    if (File.Exists(targetPath))
+                        File.Delete(targetPath);
+                    File.Move(file, targetPath);
+                }
+                catch
+                {
+                    try { File.Delete(file); } catch { }
+                }
+            }
+        }
+        catch { }
     }
 }
