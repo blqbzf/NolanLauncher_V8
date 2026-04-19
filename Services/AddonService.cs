@@ -9,17 +9,15 @@ namespace NolanWoWLauncher.Services;
 
 public sealed class AddonService
 {
-    private const string PatchUrl = "http://43.248.129.172:88/patches/shared/patch-Z.mpq";
-
     // Addon files to extract from MPQ
     private static readonly string[] AddonMpqPaths = {
         "Interface\\AddOns\\NolanUnid\\NolanUnid.lua",
         "Interface\\AddOns\\NolanUnid\\NolanUnid.toc",
     };
 
-    private static readonly HttpClient Http = new(new HttpClientHandler { Proxy = null, UseProxy = false })
-        { Timeout = TimeSpan.FromSeconds(60) };
-
+    /// <summary>
+    /// Extract addon files from local MPQ patch file.
+    /// </summary>
     public static async Task<bool> EnsureAddonsAsync(string clientPath, Action<string>? log = null)
     {
         try
@@ -31,15 +29,20 @@ public sealed class AddonService
                 addonsDir = Path.Combine(clientPath, "AddOns");
             Directory.CreateDirectory(addonsDir);
 
-            log?.Invoke("[插件] 正在从MPQ补丁提取插件...");
+            // Find local patch-Z.mpq
+            var patchPath = Path.Combine(clientPath, "patch-Z.mpq");
+            if (!File.Exists(patchPath))
+            {
+                log?.Invoke("[插件] 未找到本地补丁文件，跳过插件提取");
+                return true;
+            }
 
-            var mpqBytes = await Http.GetByteArrayAsync(PatchUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            log?.Invoke($"[插件] 补丁下载完成 ({mpqBytes.Length / 1024}KB)");
+            log?.Invoke("[插件] 正在从本地MPQ补丁提取插件...");
 
             int updated = 0;
 
-            using var ms = new MemoryStream(mpqBytes);
-            using var archive = new MpqArchive(ms, true);
+            using var fs = File.OpenRead(patchPath);
+            using var archive = new MpqArchive(fs, true);
 
             // Add filenames so we can find files by path
             foreach (var mpqPath in AddonMpqPaths)
@@ -62,8 +65,8 @@ public sealed class AddonService
 
                 // Extract file from MPQ
                 using var mpqStream = archive.OpenFile(mpqPath);
-                using var fs = File.Create(destPath);
-                await mpqStream.CopyToAsync(fs);
+                using var outFs = File.Create(destPath);
+                await mpqStream.CopyToAsync(outFs);
 
                 updated++;
                 log?.Invoke($"[插件] 已提取: {Path.GetFileName(mpqPath)}");
