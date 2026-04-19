@@ -22,6 +22,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.10" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.10" />
     <PackageReference Include="System.Windows.Extensions" Version="8.0.0" />
+    <PackageReference Include="War3Net.IO.Mpq" Version="6.0.2" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="download_config.json" />

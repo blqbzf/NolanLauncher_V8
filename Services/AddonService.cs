@@ -1,26 +1,29 @@
 using System;
 using System.IO;
-using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using War3Net.IO.Mpq;
 
 namespace NolanWoWLauncher.Services;
 
 public sealed class AddonService
 {
-    private const string AddonZipUrl = "http://43.248.129.172:88/patches/shared/NolanAddons.zip";
+    private const string PatchUrl = "http://43.248.129.172:88/patches/shared/patch-Z.mpq";
+
+    // Addon files to extract from MPQ
+    private static readonly string[] AddonMpqPaths = {
+        "Interface\\AddOns\\NolanUnid\\NolanUnid.lua",
+        "Interface\\AddOns\\NolanUnid\\NolanUnid.toc",
+    };
 
     private static readonly HttpClient Http = new(new HttpClientHandler { Proxy = null, UseProxy = false })
-        { Timeout = TimeSpan.FromSeconds(30) };
+        { Timeout = TimeSpan.FromSeconds(60) };
 
-    /// <summary>
-    /// Download and install addons every time to ensure latest version.
-    /// </summary>
     public static async Task<bool> EnsureAddonsAsync(string clientPath, Action<string>? log = null)
     {
         try
         {
-            // clientPath might be the game root or the Interface folder itself
             var addonsDir = clientPath;
             if (!clientPath.EndsWith("Interface", StringComparison.OrdinalIgnoreCase))
                 addonsDir = Path.Combine(clientPath, "Interface", "AddOns");
@@ -28,40 +31,45 @@ public sealed class AddonService
                 addonsDir = Path.Combine(clientPath, "AddOns");
             Directory.CreateDirectory(addonsDir);
 
-            // Clean up old AIO folder (renamed to AIO_Client)
-            var oldAioDir = Path.Combine(addonsDir, "AIO");
-            if (Directory.Exists(oldAioDir))
+            log?.Invoke("[插件] 正在从MPQ补丁提取插件...");
+
+            var mpqBytes = await Http.GetByteArrayAsync(PatchUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            log?.Invoke($"[插件] 补丁下载完成 ({mpqBytes.Length / 1024}KB)");
+
+            int updated = 0;
+
+            using var ms = new MemoryStream(mpqBytes);
+            using var archive = new MpqArchive(ms, true);
+
+            // Add filenames so we can find files by path
+            foreach (var mpqPath in AddonMpqPaths)
+                archive.AddFileName(mpqPath);
+
+            foreach (var mpqPath in AddonMpqPaths)
             {
-                try { Directory.Delete(oldAioDir, true); } catch { }
-            }
+                if (!archive.FileExists(mpqPath))
+                {
+                    log?.Invoke($"[插件] MPQ中未找到: {Path.GetFileName(mpqPath)}");
+                    continue;
+                }
 
-            log?.Invoke($"[插件] 正在检查插件更新... (addonsDir={addonsDir})");
+                // Convert MPQ path to disk path
+                var relativePath = mpqPath.Substring("Interface\\AddOns\\".Length);
+                var destPath = Path.Combine(addonsDir, relativePath.Replace('\\', Path.DirectorySeparatorChar));
 
-            // Download zip
-            var zipBytes = await Http.GetByteArrayAsync(AddonZipUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-
-            // Extract zip to AddOns directory
-            using var ms = new MemoryStream(zipBytes);
-            using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
-
-            foreach (var entry in archive.Entries)
-            {
-                var destPath = Path.Combine(addonsDir, entry.FullName);
                 var dir = Path.GetDirectoryName(destPath);
-                if (!string.IsNullOrEmpty(dir))
-                    Directory.CreateDirectory(dir);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-                if (entry.Length > 0)
-                {
-                    entry.ExtractToFile(destPath, true);
-                }
-                else if (!Directory.Exists(destPath))
-                {
-                    Directory.CreateDirectory(destPath);
-                }
+                // Extract file from MPQ
+                using var mpqStream = archive.OpenFile(mpqPath);
+                using var fs = File.Create(destPath);
+                await mpqStream.CopyToAsync(fs);
+
+                updated++;
+                log?.Invoke($"[插件] 已提取: {Path.GetFileName(mpqPath)}");
             }
 
-            log?.Invoke($"[插件] AIO + NolanUnid 已更新到最新版本 (解压到 {addonsDir})");
+            log?.Invoke($"[插件] 完成 (更新{updated}个文件)");
             return true;
         }
         catch (Exception ex)
