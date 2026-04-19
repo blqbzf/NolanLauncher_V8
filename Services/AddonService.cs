@@ -35,7 +35,7 @@ public sealed class AddonService
                 try { Directory.Delete(oldAioDir, true); } catch { }
             }
 
-            log?.Invoke("[插件] 正在检查插件更新...");
+            log?.Invoke($"[插件] 正在检查插件更新... (addonsDir={addonsDir})");
 
             // Download zip
             var zipBytes = await Http.GetByteArrayAsync(AddonZipUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
@@ -61,7 +61,7 @@ public sealed class AddonService
                 }
             }
 
-            log?.Invoke("[插件] AIO + NolanUnid 已更新到最新版本");
+            log?.Invoke($"[插件] AIO + NolanUnid 已更新到最新版本 (解压到 {addonsDir})");
             return true;
         }
         catch (Exception ex)
