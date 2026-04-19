@@ -711,7 +711,9 @@ public partial class MainWindow : Window
                 return;
             }
 
-            // Addons are distributed via MPQ patches, no ZIP download needed
+            // Ensure AIO + NolanUnid addons are installed (covers disk files, MPQ handles rest)
+            await AddonService.EnsureAddonsAsync(clientPath, msg => AppendLog(msg));
+
             await FixRealmlistAsync();
 
             var rootRealmlist = Path.Combine(clientPath, "realmlist.wtf");
