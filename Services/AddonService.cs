@@ -1,23 +1,18 @@
 using System;
 using System.IO;
-using System.Linq;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
-using War3Net.IO.Mpq;
 
 namespace NolanWoWLauncher.Services;
 
 public sealed class AddonService
 {
-    // Addon files to extract from MPQ
-    private static readonly string[] AddonMpqPaths = {
-        "Interface\\AddOns\\NolanUnid\\NolanUnid.lua",
-        "Interface\\AddOns\\NolanUnid\\NolanUnid.toc",
-    };
+    private const string AddonZipUrl = "http://43.248.129.172:88/patches/shared/NolanAddons.zip";
 
-    /// <summary>
-    /// Extract addon files from local MPQ patch file.
-    /// </summary>
+    private static readonly HttpClient Http = new(new HttpClientHandler { Proxy = null, UseProxy = false })
+        { Timeout = TimeSpan.FromSeconds(60) };
+
     public static async Task<bool> EnsureAddonsAsync(string clientPath, Action<string>? log = null)
     {
         try
@@ -29,54 +24,29 @@ public sealed class AddonService
                 addonsDir = Path.Combine(clientPath, "AddOns");
             Directory.CreateDirectory(addonsDir);
 
-            // Find local patch-Z.mpq (could be in root or Data dir)
-            var patchPath = Path.Combine(clientPath, "patch-Z.mpq");
-            if (!File.Exists(patchPath))
-                patchPath = Path.Combine(clientPath, "Data", "patch-Z.mpq");
-            if (!File.Exists(patchPath))
-                patchPath = Path.Combine(clientPath, "Data", "zhCN", "patch-Z.mpq");
-            if (!File.Exists(patchPath))
-            {
-                log?.Invoke("[插件] 未找到本地补丁文件，跳过插件提取");
-                return true;
-            }
+            log?.Invoke("[插件] 正在下载插件更新...");
+            var zipBytes = await Http.GetByteArrayAsync(AddonZipUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            log?.Invoke($"[插件] 下载完成 ({zipBytes.Length / 1024}KB)");
 
-            log?.Invoke("[插件] 正在从本地MPQ补丁提取插件...");
+            using var ms = new MemoryStream(zipBytes);
+            using var archive = new ZipArchive(ms, ZipArchiveMode.Read);
 
             int updated = 0;
-
-            using var fs = File.OpenRead(patchPath);
-            using var archive = new MpqArchive(fs, true);
-
-            // Add filenames so we can find files by path
-            foreach (var mpqPath in AddonMpqPaths)
-                archive.AddFileName(mpqPath);
-
-            foreach (var mpqPath in AddonMpqPaths)
+            foreach (var entry in archive.Entries)
             {
-                if (!archive.FileExists(mpqPath))
-                {
-                    log?.Invoke($"[插件] MPQ中未找到: {Path.GetFileName(mpqPath)}");
-                    continue;
-                }
+                if (string.IsNullOrEmpty(entry.Name)) continue; // skip directories
 
-                // Convert MPQ path to disk path
-                var relativePath = mpqPath.Substring("Interface\\AddOns\\".Length);
-                var destPath = Path.Combine(addonsDir, relativePath.Replace('\\', Path.DirectorySeparatorChar));
-
+                var destPath = Path.Combine(addonsDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
                 var dir = Path.GetDirectoryName(destPath);
                 if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-                // Extract file from MPQ
-                using var mpqStream = archive.OpenFile(mpqPath);
-                using var outFs = File.Create(destPath);
-                await mpqStream.CopyToAsync(outFs);
-
+                using var entryStream = entry.Open();
+                using var fs = File.Create(destPath);
+                await entryStream.CopyToAsync(fs);
                 updated++;
-                log?.Invoke($"[插件] 已提取: {Path.GetFileName(mpqPath)}");
             }
 
-            log?.Invoke($"[插件] 完成 (更新{updated}个文件)");
+            log?.Invoke($"[插件] 插件更新完成 ({updated}个文件)");
             return true;
         }
         catch (Exception ex)
