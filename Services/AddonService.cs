@@ -29,8 +29,12 @@ public sealed class AddonService
                 addonsDir = Path.Combine(clientPath, "AddOns");
             Directory.CreateDirectory(addonsDir);
 
-            // Find local patch-Z.mpq
+            // Find local patch-Z.mpq (could be in root or Data dir)
             var patchPath = Path.Combine(clientPath, "patch-Z.mpq");
+            if (!File.Exists(patchPath))
+                patchPath = Path.Combine(clientPath, "Data", "patch-Z.mpq");
+            if (!File.Exists(patchPath))
+                patchPath = Path.Combine(clientPath, "Data", "zhCN", "patch-Z.mpq");
             if (!File.Exists(patchPath))
             {
                 log?.Invoke("[插件] 未找到本地补丁文件，跳过插件提取");
