@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private readonly LauncherConfigService _launcherConfigService = new();
     private readonly ServerStatusService _serverStatusService = new();
     private readonly AnnouncementService _announcementService = new();
+    private readonly AntiCheatService _antiCheatService = new();
+    private AntiCheatResult? _lastAntiCheatResult;
 
     private readonly LauncherConfig _launcherConfig;
     private bool _useTestServer;
@@ -606,6 +608,57 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task ShowAntiCheatWarningAsync(List<string> suspiciousProcesses)
+    {
+        var processList = string.Join("\n", suspiciousProcesses.Select(p => $"  • {p}"));
+        var msg = $"检测到以下可疑程序正在运行，请先关闭后再进入游戏：\n\n{processList}\n\n如有误报，请联系管理员。";
+
+        var dialog = new Window
+        {
+            Title = "⚠ 安全检查未通过",
+            Width = 520,
+            Height = 280,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Background = new SolidColorBrush(Color.Parse("#04070D")),
+            CanResize = false,
+            Icon = Icon
+        };
+
+        var panel = new StackPanel { Margin = new Thickness(24), Spacing = 16 };
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = "⚠ 安全检查未通过，无法进入游戏",
+            FontSize = 18,
+            FontWeight = FontWeight.Bold,
+            Foreground = new SolidColorBrush(Color.Parse("#FF7B7B")),
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = msg,
+            FontSize = 13,
+            Foreground = new SolidColorBrush(Color.Parse("#E8DDC8")),
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        var okButton = new Button { Content = "我知道了", HorizontalAlignment = HorizontalAlignment.Center, MinWidth = 120 };
+        okButton.Click += (_, _) => dialog.Close();
+        panel.Children.Add(okButton);
+
+        dialog.Content = new Border
+        {
+            BorderBrush = new SolidColorBrush(Color.Parse("#5A1010")),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(0),
+            Child = panel
+        };
+
+        await dialog.ShowDialog(this);
+    }
+
     private async Task OpenRegisterWindowAsync()
     {
         try
@@ -691,6 +744,40 @@ public partial class MainWindow : Window
                 AppendLog("未找到 Wow.exe 或 Wow-64.exe。");
                 return;
             }
+
+            // === 反挂检查：启动前扫描可疑进程 ===
+            AppendLog("[反挂] 正在进行进入游戏前安全检测...");
+            SetText("DownloadProgressText", "[反挂] 正在扫描可疑程序...");
+            SetText("ServerStatusText", "安全检测中");
+            SetForeground("ServerStatusText", "#D3A14A");
+
+            var suspectProcesses = _antiCheatService.QuickProcessScan();
+            _lastAntiCheatResult = _antiCheatService.FullCheck();
+
+            if (suspectProcesses.Count > 0)
+            {
+                AppendLog($"[反挂] 检测到可疑进程 {suspectProcesses.Count} 个：");
+                foreach (var p in suspectProcesses)
+                    AppendLog($"[反挂]   - {p}");
+
+                SetText("DownloadProgressText", $"⚠ 检测到 {suspectProcesses.Count} 个可疑进程");
+                SetText("ServerStatusText", "安全检查未通过");
+                SetForeground("ServerStatusText", "#FF6B6B");
+
+                // 异步上报（不阻塞）
+                _ = _antiCheatService.ReportAsync(_lastAntiCheatResult, clientPath, _launcherConfig.RealmHost);
+
+                await ShowAntiCheatWarningAsync(suspectProcesses);
+                return;
+            }
+
+            AppendLog("[反挂] 环境检测通过，无可疑进程。");
+            AppendLog($"[反挂] 机器指纹：{_lastAntiCheatResult.MachineFingerprint}");
+            AppendLog($"[反挂] 会话令牌：{_lastAntiCheatResult.SessionToken}");
+
+            // 异步上报通过状态
+            _ = _antiCheatService.ReportAsync(_lastAntiCheatResult, clientPath, _launcherConfig.RealmHost);
+            // === 反挂检查结束 ===
 
             AppendLog($"启动目标客户端目录：{clientPath}");
             AppendLog($"启动目标可执行文件：{wowExe}");
