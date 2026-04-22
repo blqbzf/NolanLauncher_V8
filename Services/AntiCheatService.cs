@@ -185,12 +185,13 @@ public sealed class AntiCheatService
                 if (ExcludedSystemProcesses.Contains(baseName))
                     continue;
 
-                // 匹配可疑进程名
+                // 匹配可疑进程名（整词或前缀匹配，避免误杀正常进程）
                 foreach (var suspect in SuspiciousProcesses)
                 {
-                    if (name.Equals(suspect, StringComparison.OrdinalIgnoreCase) ||
-                        baseName.Equals(suspect, StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains(suspect, StringComparison.OrdinalIgnoreCase))
+                    // 前缀匹配：只匹配进程名前缀，避免 "edrservice.exe" 被 "edr" 误杀
+                    if (baseName.Equals(suspect, StringComparison.OrdinalIgnoreCase) ||
+                        baseName.StartsWith(suspect + ".exe", StringComparison.OrdinalIgnoreCase) ||
+                        baseName.StartsWith(suspect, StringComparison.OrdinalIgnoreCase))
                     {
                         var pid = mo["ProcessId"]?.ToString() ?? "?";
                         found.Add($"{name} (PID: {pid})");
