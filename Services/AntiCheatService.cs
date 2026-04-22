@@ -64,6 +64,13 @@ public sealed class AntiCheatService
         "ctfmon", "audiodg", "SearchHost", "StartMenuExperienceHost",
         "TextInputHost", "Widgets", "WidgetsHost", "SystemSettings",
         "DataExchangeHost", "合统", "armsint", "MsIdleForce",
+        // Windows 合法进程（常见误报）
+        "Memory Compression", "MemoryCompression",
+        "Registry", "Idle", "System Idle Process",
+        // 常见第三方软件服务（常见误报）
+        "cer_service", "FNPLicensingService64", "IdplayerService",
+        "IdremoteService", "AdskLicensingService", "PsiService_2",
+        "UpgradeService", "MaintenanceService", "edrservice",
     };
 
     private readonly string _reportEndpoint;
@@ -185,13 +192,11 @@ public sealed class AntiCheatService
                 if (ExcludedSystemProcesses.Contains(baseName))
                     continue;
 
-                // 匹配可疑进程名（整词或前缀匹配，避免误杀正常进程）
+                // 精确匹配可疑进程名（避免误杀正常进程）
                 foreach (var suspect in SuspiciousProcesses)
                 {
-                    // 前缀匹配：只匹配进程名前缀，避免 "edrservice.exe" 被 "edr" 误杀
-                    if (baseName.Equals(suspect, StringComparison.OrdinalIgnoreCase) ||
-                        baseName.StartsWith(suspect + ".exe", StringComparison.OrdinalIgnoreCase) ||
-                        baseName.StartsWith(suspect, StringComparison.OrdinalIgnoreCase))
+                    // 精确匹配进程名
+                    if (baseName.Equals(suspect, StringComparison.OrdinalIgnoreCase))
                     {
                         var pid = mo["ProcessId"]?.ToString() ?? "?";
                         found.Add($"{name} (PID: {pid})");
