@@ -22,16 +22,8 @@ jobs:
 
       - name: Publish
         run: |
-          dotnet publish NolanWoWLauncher.csproj \
-            -c Release \
-            -r win-x64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=none \
-            -p:DebugSymbols=false \
-            -o ./publish
+          dotnet publish NolanWoWLauncher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o ./publish
+          if (Test-Path "./publish/NolanWoWLauncher.exe") { Write-Host "SUCCESS: exe created"; Get-Item "./publish/NolanWoWLauncher.exe" | Select Name,Length } else { Write-Host "FAIL: exe not found"; Get-ChildItem ./publish/ | Select Name,Length; exit 1 }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
