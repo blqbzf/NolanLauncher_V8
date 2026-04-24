@@ -3,7 +3,7 @@ namespace NolanWoWLauncher.Models;
 public sealed class LauncherConfig
 {
     public string RealmHost { get; set; } = "43.248.129.172";
-    public string RegisterUrl { get; set; } = "https://你的注册网址";
+    public string RegisterUrl { get; set; } = "http://43.248.129.172:88/";
     public string ServerDisplayName { get; set; } = "正式服 / 巫妖王之怒 / 3.3.5a";
     public string LauncherVersion { get; set; } = "V4";
     public string LastClientPath { get; set; } = string.Empty;
