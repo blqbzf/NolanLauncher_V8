@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: NolanUnid
+## Notes: Random affix display
+## Author: Nolan
+## Version: 1.0
+## DefaultState: enabled
+
+NolanUnid.lua

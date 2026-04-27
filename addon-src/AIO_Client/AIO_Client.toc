@@ -1,0 +1,15 @@
+## Interface: 30300
+## Title: AIO_Client
+## Notes: All-In-One client framework
+## Author: Rochet2
+## Version: 1.0
+## SavedVars: AIO_sv, AIO_sv_Addons
+## SavedVarsPerCharacter: AIO_sv_char
+## DefaultState: enabled
+
+require_shim.lua
+queue.lua
+smallfolk.lua
+crc32lua.lua
+lualzw.lua
+AIO.lua
