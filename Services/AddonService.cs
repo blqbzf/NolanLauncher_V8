@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
@@ -27,28 +26,32 @@ public sealed class AddonService
                 addonsDir = Path.Combine(clientPath, "AddOns");
             Directory.CreateDirectory(addonsDir);
 
-            log?.Invoke("[插件] 检查插件更新...");
+            log?.Invoke("[插件] 下载最新插件...");
 
-            // Download ZIP with cache-bust
+            // Always download fresh ZIP (cache-bust via query string)
             var zipBytes = await Http.GetByteArrayAsync(AddonZipUrl + "?ts=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             log?.Invoke($"[插件] 下载完成 ({zipBytes.Length / 1024}KB)");
 
-            // Compute ZIP content hash for change detection
+            // Compute ZIP hash for change detection
             using var sha = System.Security.Cryptography.SHA256.Create();
             var zipHash = Convert.ToHexString(sha.ComputeHash(zipBytes)).ToLowerInvariant();
 
-            // Check if ZIP changed since last update
-            var hashFile = Path.Combine(addonsDir, ".nolan_addons_hash");
-            var lastHash = File.Exists(hashFile) ? File.ReadAllText(hashFile).Trim() : "";
+            // Check local version file
+            var versionFile = Path.Combine(addonsDir, ".nolan_addons_hash");
+            var localHash = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : "";
 
-            if (lastHash == zipHash)
+            if (localHash == zipHash)
             {
                 log?.Invoke("[插件] 插件已是最新，无需更新");
                 return true;
             }
 
-            // ZIP is different — clean managed folders and extract
-            log?.Invoke("[插件] 检测到插件更新，正在替换...");
+            // New version available — clean managed folders and extract
+            if (localHash == "")
+                log?.Invoke("[插件] 首次安装插件...");
+            else
+                log?.Invoke("[插件] 检测到插件更新，正在替换...");
+
             foreach (var folder in ManagedFolders)
             {
                 var dir = Path.Combine(addonsDir, folder);
@@ -67,8 +70,8 @@ public sealed class AddonService
                 if (string.IsNullOrEmpty(entry.Name)) continue;
 
                 var destPath = Path.Combine(addonsDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
-                var dir = Path.GetDirectoryName(destPath);
-                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                var destDir = Path.GetDirectoryName(destPath);
+                if (!string.IsNullOrEmpty(destDir)) Directory.CreateDirectory(destDir);
 
                 using var entryStream = entry.Open();
                 using var fs = File.Create(destPath);
@@ -76,15 +79,15 @@ public sealed class AddonService
                 extracted++;
             }
 
-            // Save hash
-            await File.WriteAllTextAsync(hashFile, zipHash);
+            // Write version file
+            await File.WriteAllTextAsync(versionFile, zipHash);
 
-            log?.Invoke($"[插件] 插件更新完成 ({extracted}个文件)");
+            log?.Invoke($"[插件] 更新完成 ({extracted}个文件)");
             return true;
         }
         catch (Exception ex)
         {
-            log?.Invoke($"[插件] 插件更新失败：{ex.Message}（不影响游戏启动）");
+            log?.Invoke($"[插件] 更新失败：{ex.Message}（不影响游戏启动）");
             return false;
         }
     }
