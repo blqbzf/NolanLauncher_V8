@@ -83,7 +83,7 @@ public sealed class LegacyUpdateService
 
             if (!File.Exists(localPath))
             {
-                patch.State = $"缺失 | path={localPath}";
+                patch.State = "缺失";
                 patch.StateColor = "#FF7B7B";
                 continue;
             }
@@ -93,15 +93,13 @@ public sealed class LegacyUpdateService
                 var hash = await ComputeSha256Async(localPath);
                 if (!hash.Equals(patch.Hash, StringComparison.OrdinalIgnoreCase))
                 {
-                    patch.State = $"可更新 | local={hash} manifest={patch.Hash}";
+                    patch.State = "可更新";
                     patch.StateColor = "#FFB86B";
                     continue;
                 }
             }
 
-            patch.State = !string.IsNullOrWhiteSpace(patch.Hash)
-                ? $"已安装 | hash={patch.Hash}"
-                : "已安装";
+            patch.State = "已安装";
             patch.StateColor = "#6DE68A";
         }
 
