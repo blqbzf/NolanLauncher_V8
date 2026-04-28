@@ -392,6 +392,10 @@ GameTooltip:HookScript("OnTooltipSetItem", function(tip)
         tip:AddDoubleLine("  " .. displayName .. " +" .. a.rolled_value, "", 0.2, 1.0, 0.2, 0, 0, 0)
     end
     tip:Show()
+
+    -- Clear after showing so next item doesn't reuse stale data
+    NolanUnidClient.State.lastTooltipAffixes = nil
+    NolanUnidClient.State.lastGrade = 0
 end)
 
 -- ============ PaperDoll GS =====
